@@ -1,0 +1,7 @@
+[package]
+name = "cp-rust-library"
+version = "0.1.0"
+authors = ["kutimoti <kutimoti.tokura@gmail.com>"]
+edition = "2018"
+
+[dependencies]
