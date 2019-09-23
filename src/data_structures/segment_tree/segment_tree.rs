@@ -8,11 +8,11 @@ pub struct SegmentTree<T: Monoid> {
 }
 
 impl<T: Monoid> SegmentTree<T> {
-    pub fn init(vec: Vec<T>) -> Self {
+    pub fn init(arr: &[T]) -> Self {
         let mut sz = 1;
-        while sz < vec.len() { sz *= 2; }
+        while sz < arr.len() { sz *= 2; }
         let mut node = vec![T::identity(); sz << 1];
-        for i in 0..vec.len() { node[i + sz] = vec[i].clone(); }
+        for i in 0..arr.len() { node[i + sz] = arr[i].clone(); }
         for i in (1..sz).rev() { node[i] = node[i << 1].op(&node[(i << 1) + 1]); }
         SegmentTree { node: node, sz: sz }
     }
@@ -72,7 +72,7 @@ mod rsq_test {
     }
     #[test]
     fn rsq_test() {
-        let mut seg = SegmentTree::init(vec![Am(1), Am(2), Am(3)]);
+        let mut seg = SegmentTree::init(&vec![Am(1), Am(2), Am(3)]);
         assert!(seg.fold(0..2).0 == 3);
         assert!(seg.fold(1..2).0 == 2);
         seg.set(1, Am(5));
@@ -84,7 +84,7 @@ mod rsq_test {
     }
     #[test]
     fn corner_test() {
-        let seg = SegmentTree::init(vec![Am(1)]);
+        let seg = SegmentTree::init(&vec![Am(1)]);
         assert!(seg.fold(0..1).0 == 1);
     }
 }
