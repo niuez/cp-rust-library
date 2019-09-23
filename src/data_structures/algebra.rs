@@ -10,7 +10,11 @@ pub trait Unital: Magma {
 
 pub trait Monoid: Magma + Associative + Unital {}
 
-pub trait Effect<E: Monoid> where Self: Monoid {
+pub trait Pow: Magma {
+    fn pow(&self, p: usize) -> Self;
+}
+
+pub trait Effect<E: Monoid> {
     fn effect(&self, e: &E) -> Self;
 }
 
