@@ -41,20 +41,12 @@ impl<M: Mod> Add for ModInt<M> {
     }
 }
 
-impl<M: Mod> AddAssign for ModInt<M> {
-    fn add_assign(&mut self, rhs: Self) { *self = *self - rhs; }
-}
-
 impl<M: Mod> Sub for ModInt<M> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         let a = self.a - rhs.a;
         ModInt::new(if a < 0 { a + M::m() } else { a })
     }
-}
-
-impl<M: Mod> SubAssign for ModInt<M> {
-    fn sub_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
 impl<M: Mod> Mul for ModInt<M> {
@@ -64,10 +56,6 @@ impl<M: Mod> Mul for ModInt<M> {
     }
 }
 
-impl<M: Mod> MulAssign for ModInt<M> {
-    fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
-}
-
 impl<M: Mod> Div for ModInt<M> {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
@@ -75,9 +63,11 @@ impl<M: Mod> Div for ModInt<M> {
     }
 }
 
-impl<M: Mod> DivAssign for ModInt<M> {
-    fn div_assign(&mut self, rhs: Self) { *self = *self / rhs; }
-}
+impl<M: Mod> AddAssign for ModInt<M> { fn add_assign(&mut self, rhs: Self) { *self = *self - rhs; } }
+impl<M: Mod> SubAssign for ModInt<M> { fn sub_assign(&mut self, rhs: Self) { *self = *self + rhs; } }
+impl<M: Mod> MulAssign for ModInt<M> { fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; } }
+impl<M: Mod> DivAssign for ModInt<M> { fn div_assign(&mut self, rhs: Self) { *self = *self / rhs; } }
+
 
 #[cfg(test)]
 mod modint_test {
