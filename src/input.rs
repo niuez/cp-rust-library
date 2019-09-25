@@ -5,7 +5,7 @@ macro_rules! input {
         input_rec!{ iter, $($r)* }
     };
     ($($r:tt)*) => {
-        let mut s = {
+        let s = {
             use std::io::Read;
             let mut s = String::new();
             std::io::stdin().read_to_string(&mut s).unwrap();
