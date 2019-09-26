@@ -10,7 +10,7 @@ macro_rules! input {
             let mut s = String::new();
             std::io::stdin().read_to_string(&mut s).unwrap();
             s
-        }
+        };
         let mut iter = s.split_whitespace();
         input_rec!{ iter, $($r)* }
     };

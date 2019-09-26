@@ -1,23 +1,23 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
-pub trait Mod {
-    fn m() -> i64;
+pub trait Mod: Sized {
+    fn m() -> u64;
 }
 
 #[macro_export]
 macro_rules! const_mod {
     ($st: ident, $m: expr) => {
         struct $st {}
-        impl Mod for $st { fn m() -> i64 { $m } }
+        impl Mod for $st { fn m() -> u64 { $m } }
     }
 }
 
-pub struct ModInt<M: Mod> { a: i64, _p: std::marker::PhantomData<M> }
+pub struct ModInt<M: Mod> { a: u64, _p: std::marker::PhantomData<M> }
 
 impl<M: Mod> ModInt<M> {
-    pub fn new(a: i64) -> Self { ModInt { a: a % M::m(), _p: std::marker::PhantomData } }
-    pub fn value(&self) -> i64 { self.a }
-    pub fn pow(&self, p: i64) -> Self {
+    pub fn new(a: u64) -> Self { ModInt { a: a % M::m() as u64, _p: std::marker::PhantomData } }
+    pub fn value(&self) -> u64 { self.a }
+    pub fn pow(&self, p: u64) -> Self {
         let mut exp = p;
         let mut now = *self;
         let mut ans = ModInt::new(1);
@@ -44,8 +44,7 @@ impl<M: Mod> Add for ModInt<M> {
 impl<M: Mod> Sub for ModInt<M> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        let a = self.a - rhs.a;
-        ModInt::new(if a < 0 { a + M::m() } else { a })
+        ModInt::new(if self.a < rhs.a { M::m() + self.a - rhs.a } else { self.a - rhs.a })
     }
 }
 
