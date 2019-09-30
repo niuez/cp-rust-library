@@ -1,4 +1,4 @@
-use crate::data_structures::algebra::*;
+use crate::algebra::*;
 
 use std::ops::Range;
 
@@ -65,7 +65,7 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> LazySegmentTree<T, E> {
 
 #[cfg(test)]
 mod rmq_ruq_test {
-    use crate::data_structures::algebra::*;
+    use crate::algebra::*;
     use crate::data_structures::segment_tree::lazy_segment_tree::LazySegmentTree;
     use std::cmp::min;
 

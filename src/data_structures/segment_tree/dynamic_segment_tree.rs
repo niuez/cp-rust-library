@@ -1,4 +1,4 @@
-use crate::data_structures::algebra::*;
+use crate::algebra::*;
 
 use std::ops::Range;
 

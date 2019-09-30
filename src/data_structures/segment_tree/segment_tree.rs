@@ -1,4 +1,4 @@
-use crate::data_structures::algebra::*;
+use crate::algebra::*;
 
 use std::ops::Range;
 
@@ -56,7 +56,7 @@ impl<T: Monoid> SegmentTree<T> {
 
 #[cfg(test)]
 mod rsq_test {
-    use crate::data_structures::algebra::*;
+    use crate::algebra::*;
     use crate::data_structures::segment_tree::segment_tree::SegmentTree;
 
     #[derive(Clone)]

@@ -1,4 +1,4 @@
-use crate::data_structures::algebra::*;
+use crate::algebra::*;
 
 use std::rc::Rc;
 use std::ops::Range;
@@ -102,7 +102,7 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> PersistentLazySegmentTree<T, E> {
 
 #[cfg(test)]
 mod persistent_lazy_segment_tree_test {
-    use crate::data_structures::algebra::*;
+    use crate::algebra::*;
     use crate::data_structures::segment_tree::persistent_lazy_segment_tree::*;
 
     #[derive(Clone, Debug)]
