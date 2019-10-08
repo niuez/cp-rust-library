@@ -1,2 +1,2 @@
 pub mod directed_tree;
-pub mod vertex_eulertour;
+pub mod dfs_sequence;
