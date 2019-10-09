@@ -71,4 +71,25 @@ fn splay<N: SplayArrayNode>(mut root: Box<N>, mut i: usize) -> Box<N> {
     root
 }
 
+pub fn merge<N: SplayArrayNode>(x: Link<N>, y: Link<N>) -> Link<N> {
+    match x {
+        Some(x) => {
+            let sz = x.size();
+            let mut x = splay(x, sz - 1);
+            x.as_mut().set(1, y);
+            Some(x)
+        }
+        None => y
+    }
+}
 
+pub fn split<N: SplayArrayNode>(x: Link<N>, i: usize) -> (Link<N>, Link<N>) {
+    assert!(i <= size(&x), "not validate spliting");
+    if i == 0 { (None, x) }
+    else if i == size(&x) { (x, None) }
+    else {
+        let mut x = splay(x.unwrap(), i);
+        let y = x.as_mut().take(0);
+        (y, Some(x))
+    }
+}
