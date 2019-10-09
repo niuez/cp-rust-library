@@ -1,11 +1,12 @@
 use crate::data_structures::node_traits::*;
+use crate::algebra::*;
 
 use std::cmp::Ordering::{ Equal, Greater, Less };
 
 pub trait SplayArrayNode: Node + SizeNode {}
 impl<N: Node + SizeNode> SplayArrayNode for N {}
 
-fn depth_fix<N: SplayArrayNode>(mut n: &mut Link<N>, dir: usize) {
+fn depth_fix<N: SplayArrayNode>(n: &mut Link<N>, dir: usize) {
     if let Some(ref mut x) = n {
         depth_fix(x.as_mut().child_mut(dir), dir);
         x.as_mut().fix();
@@ -71,7 +72,7 @@ fn splay<N: SplayArrayNode>(mut root: Box<N>, mut i: usize) -> Box<N> {
     root
 }
 
-pub fn merge<N: SplayArrayNode>(x: Link<N>, y: Link<N>) -> Link<N> {
+fn merge<N: SplayArrayNode>(x: Link<N>, y: Link<N>) -> Link<N> {
     match x {
         Some(x) => {
             let sz = x.size();
@@ -83,7 +84,7 @@ pub fn merge<N: SplayArrayNode>(x: Link<N>, y: Link<N>) -> Link<N> {
     }
 }
 
-pub fn split<N: SplayArrayNode>(x: Link<N>, i: usize) -> (Link<N>, Link<N>) {
+fn split<N: SplayArrayNode>(x: Link<N>, i: usize) -> (Link<N>, Link<N>) {
     assert!(i <= size(&x), "not validate spliting");
     if i == 0 { (None, x) }
     else if i == size(&x) { (x, None) }
@@ -92,4 +93,35 @@ pub fn split<N: SplayArrayNode>(x: Link<N>, i: usize) -> (Link<N>, Link<N>) {
         let y = x.as_mut().take(0);
         (y, Some(x))
     }
+}
+
+pub struct SplayTree<N: SplayArrayNode> {
+    root: Link<N>,
+}
+
+impl<N: SplayArrayNode> SplayTree<N> {
+    pub fn empty() -> Self { SplayTree { root: None } }
+    pub fn new(node: N) -> Self { SplayTree { root: Some(Box::new(node)) } }
+    pub fn merge(self, other: Self) -> Self { SplayTree { root: merge(self.root, other.root) } }
+    pub fn split(self, i: usize) -> (Self, Self) {
+        let (l, r) = split(self.root, i);
+        ( SplayTree { root: l }, SplayTree { root: r })
+    }
+    pub fn at(&mut self, i: usize) -> &N::Value {
+        self.root = Some(splay(self.root.take().unwrap(), i));
+        self.root.as_ref().unwrap().value()
+    }
+}
+
+impl<N: SplayArrayNode + FoldNode> SplayTree<N> where N::Value: Monoid {
+    pub fn fold(&self) -> N::Value {
+        match self.root.as_ref() {
+            Some(r) => r.fold(),
+            None => N::Value::identity(),
+        }
+    }
+}
+
+impl<N: SplayArrayNode + ReversibleNode> SplayTree<N> {
+    pub fn reverse(&mut self) { self.root.as_mut().map(|r| r.as_mut().reverse()); }
 }

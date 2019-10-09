@@ -10,8 +10,8 @@ pub trait Node: Sized {
     fn child_mut(&mut self, dir: usize) -> &mut Link<Self>;
     fn take(&mut self, dir: usize) -> Link<Self>;
     fn set(&mut self, dir: usize, node: Link<Self>);
-    fn val(&self) -> &Self::Value;
-    fn val_mut(&mut self) -> &mut Self::Value;
+    fn value(&self) -> &Self::Value;
+    fn value_mut(&mut self) -> &mut Self::Value;
 }
 
 pub trait ReversibleNode: Node { fn reverse(&mut self); }
