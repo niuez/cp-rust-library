@@ -14,6 +14,10 @@ pub trait Pow: Magma {
     fn pow(&self, p: usize) -> Self;
 }
 
+pub trait Reverse: Magma {
+    fn reverse(&self) -> Self;
+}
+
 pub trait Inv: Magma {
     fn inv(&self) -> Self;
 }

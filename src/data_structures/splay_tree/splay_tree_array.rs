@@ -22,12 +22,17 @@ fn splay<N: SplayArrayNode>(mut root: Box<N>, mut i: usize) -> Box<N> {
         loop {
             let ([le, ri], rt) = {
                 let mut x = root;
+                x.as_mut().push();
+
                 let alpha = match i.cmp(&size(x.child(0))) {
                     Equal => { root = x; break }
                     Less => { 0 }
                     Greater => { i = i - size(x.child(0)) - 1; 1 }
                 };
+
                 let mut y = x.as_mut().take(alpha).unwrap();
+                y.as_mut().push();
+
                 match i.cmp(&size(y.child(0))) {
                     Equal => {
                         if alpha == 0 { ([None, Some(x)], y) }
@@ -36,6 +41,7 @@ fn splay<N: SplayArrayNode>(mut root: Box<N>, mut i: usize) -> Box<N> {
                     cm => {
                         let beta = if cm == Less { 0 } else { i = i - size(y.child(0)) - 1; 1 };
                         let z = y.as_mut().take(beta).unwrap();
+
                         let mut res = [None, None];
                         if alpha == beta {
                             x.as_mut().set(alpha, y.as_mut().take(alpha ^ 1));
@@ -46,6 +52,7 @@ fn splay<N: SplayArrayNode>(mut root: Box<N>, mut i: usize) -> Box<N> {
                             res[alpha ^ 1] = Some(x);
                             res[beta ^ 1] = Some(y);
                         }
+
                         (res, z)
                     }
                 }
@@ -114,12 +121,7 @@ impl<N: SplayArrayNode> SplayTree<N> {
 }
 
 impl<N: SplayArrayNode + FoldNode> SplayTree<N> where N::Value: Monoid {
-    pub fn fold(&self) -> N::Value {
-        match self.root.as_ref() {
-            Some(r) => r.fold(),
-            None => N::Value::identity(),
-        }
-    }
+    pub fn fold(&self) -> N::Value { fold(&self.root) }
 }
 
 impl<N: SplayArrayNode + ReversibleNode> SplayTree<N> {
