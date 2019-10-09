@@ -7,6 +7,7 @@ pub trait Node: Sized {
     fn push(&mut self);
     fn fix(&mut self);
     fn child(&self, dir: usize) -> &Link<Self>;
+    fn child_mut(&mut self, dir: usize) -> &mut Link<Self>;
     fn take(&mut self, dir: usize) -> Link<Self>;
     fn set(&mut self, dir: usize, node: Link<Self>);
     fn val(&self) -> &Self::Value;
