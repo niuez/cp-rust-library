@@ -85,12 +85,52 @@ macro_rules! define_node {
     ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | size, $($elem:tt)*) => {
         define_node! { $node, $val_type | $($e: $t,)* size: usize, | $($elem)* }
     };
+    ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | fold, $($elem:tt)*) => {
+        define_node! { $node, $val_type | $($e: $t,)* fold: $val_type, | $($elem)* }
+    };
+    ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | rev, $($elem:tt)*) => {
+        define_node! { $node, $val_type | $($e: $t,)* rev: bool, | $($elem)* }
+    };
 }
+
+
+#[macro_export]
+macro_rules! impl_node_new {
+    ($node:ident, $val_type:ty, $($e:ident : $v: expr,)*) => {
+        impl $node {
+            fn new(val: $val_type) -> Self {
+                Self {
+                    val: val,
+                    child: [None, None],
+                    $($e: $v),*
+                }
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! impl_node_elem {
+    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | ) => {
+        impl_node_new! { $node, $val_type, $($e: $v,)* }
+    };
+    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | size, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $($e: $v,)* size: 1, | $($elem)* }
+    };
+    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | fold, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $($e: $v,)* fold: $val_type::identity(), | $($elem)* }
+    };
+    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | rev, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $($e: $v,)* rev: false, | $($elem)* }
+    };
+}
+
 
 #[macro_export]
 macro_rules! def_node {
     ($node:ident, $val_type:ty; $($elem:tt)* ) => {
         define_node! { $node, $val_type | | $($elem)* }
+        impl_node_elem! { $node, $val_type | | $($elem)* }
     };
 }
 
@@ -99,12 +139,16 @@ mod node_macro_test {
     use super::*;
 
     struct M(usize);
-    def_node! { NodeTest, M; size, }
+    def_node! { NodeTest, M; size, rev, }
     
     #[test]
     fn node_macro_test() {
-        let n = NodeTest { val: M(91), child: [None, None], size: 10 };
+        let n = NodeTest { val: M(91), child: [None, None], size: 10, rev: false };
         assert_eq!(n.val.0, 91);
         assert_eq!(n.size, 10);
+        let n = NodeTest::new(M(15));
+        assert_eq!(n.val.0, 15);
+        assert_eq!(n.size, 1);
+        assert_eq!(n.rev, false);
     }
 }
