@@ -1,71 +1,3 @@
-use crate::data_structures::node_traits::*;
-use crate::algebra::*;
-
-pub struct ArrFoldNode<T: Monoid> {
-    val: T,
-    fold: T,
-    size: usize,
-    child: [Link<ArrFoldNode<T>>; 2],
-    rev: bool,
-} 
-
-
-
-impl<T: Monoid> ArrFoldNode<T> {
-    pub fn new(val: T) -> Self {
-        Self {
-            val: val,
-            fold: T::identity(),
-            size: 1,
-            child: [ None, None ],
-            rev: false,
-        }
-    }
-}
-
-impl<T: Monoid> Node for ArrFoldNode<T> {
-    type Value = T;
-    fn push(&mut self) {
-        if self.rev {
-            self.child.swap(0, 1);
-        }
-        self.rev = false
-    }
-    fn fix(&mut self) {
-        self.size = size(&self.child[0]) + size(&self.child[1]) + 1;
-        self.fold = fold(&self.child[0]).op(&self.val).op(&fold(&self.child[1]));
-    }
-    fn child(&self, dir: usize) -> &Link<Self> { &self.child[dir] } 
-    fn child_mut(&mut self, dir: usize) -> &mut Link<Self> { &mut self.child[dir] } 
-    fn take(&mut self, dir: usize) -> Link<Self> {
-        let nn = self.child[dir].take();
-        self.fix();
-        nn
-    }
-    fn set(&mut self, dir: usize, node: Link<Self> ) {
-        self.child[dir] = node;
-        self.fix();
-    }
-    fn value(&self) -> &Self::Value { &self.val }
-    fn value_mut(&mut self) -> &mut Self::Value { &mut self.val }
-}
-
-impl<T: Monoid> ReversibleNode for ArrFoldNode<T> {
-    fn reverse(&mut self) {
-        self.rev ^= true;
-        //reversing
-    } 
-}
-
-impl<T: Monoid> SizeNode for ArrFoldNode<T> {
-    fn size(&self) -> usize { self.size }
-}
-
-impl<T: Monoid> FoldNode for ArrFoldNode<T> {
-    fn fold(&self) -> T { self.fold.clone() } 
-}
-
-
 #[macro_export]
 macro_rules! build_node_struct {
     ($node:ident, $val_type:ty, $($elem:ident: $t:ty,)*) => {
@@ -125,18 +57,118 @@ macro_rules! impl_node_elem {
     };
 }
 
+#[macro_export]
+macro_rules! impl_node_trait {
+    ($node:ident, $val_type:ty, $($elem:tt)* ) => {
+        impl Node for $node {
+            type Value = $val_type;
+            fn push(&mut self) {
+                impl_push! { self, $val_type, $($elem)* }
+            }
+            fn fix(&mut self) {
+                impl_fix! { self, $val_type, $($elem)* }
+            }
+            fn child(&self, dir: usize) -> &Link<Self> { &self.child[dir] } 
+            fn child_mut(&mut self, dir: usize) -> &mut Link<Self> { &mut self.child[dir] } 
+            fn take(&mut self, dir: usize) -> Link<Self> {
+                let nn = self.child[dir].take();
+                self.fix();
+                nn
+            }
+            fn set(&mut self, dir: usize, node: Link<Self> ) {
+                self.child[dir] = node;
+                self.fix();
+            }
+            fn value(&self) -> &Self::Value { &self.val }
+            fn value_mut(&mut self) -> &mut Self::Value { &mut self.val }
+        }
+    } 
+}
+
+#[macro_export]
+macro_rules! impl_push {
+    ($mself:expr, $val_type:ty, ) => {};
+    ($mself:expr, $val_type:ty, rev, $($elem:tt)*) => {
+        if $mself.rev {
+            $mself.child.swap(0, 1);
+        }
+        $mself.rev = false;
+        impl_push! { $mself, $val_type, $($elem)* }
+    };
+    ($mself:expr, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_push! { $mself, $val_type, $($elem)* }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_fix {
+    ($mself:expr, $val_type:ty, ) => {};
+    ($mself:expr, $val_type:ty, size, $($elem:tt)*) => {
+        $mself.size = size(&$mself.child[0]) + size(&$mself.child[1]) + 1;
+        impl_fix! { $mself, $val_type, $($elem)* }
+    };
+    ($mself:expr, $val_type:ty, fold, $($elem:tt)*) => {
+        $mself.fold = fold(&$mself.child[0]).op(&$mself.val).op(&fold(&$mself.child[1]));
+        impl_fix! { $mself, $val_type, $($elem)* }
+    };
+    ($mself:expr, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_fix! { $mself, $val_type, $($elem)* }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_rev_trait {
+    ($node:ident, $val_type:ty, ) => {};
+    ($node:ident, $val_type:ty, rev, $($tail:tt)*) => {
+        impl ReversibleNode for $node {
+            fn reverse(&mut self) {
+                self.rev ^= true;
+            }
+        }
+    };
+    ($node:ident, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_rev_trait! { $node, $val_type, $($elem)* }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_size_trait {
+    ($node:ident, $val_type:ty, ) => {};
+    ($node:ident, $val_type:ty, rev, $($tail:tt)*) => {
+        impl SizeNode for $node { fn size(&self) -> usize { self.size } }
+    };
+    ($node:ident, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_size_trait! { $node, $val_type, $($elem)* }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_fold_trait {
+    ($node:ident, $val_type:ty, ) => {};
+    ($node:ident, $val_type:ty, fold, $($tail:tt)*) => {
+        impl FoldNode for $node { fn fold(&self) -> $val_type { self.fold.clone() } }
+    };
+    ($node:ident, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_fold_trait! { $node, $val_type, $($elem)* }
+    };
+}
+
 
 #[macro_export]
 macro_rules! def_node {
     ($node:ident, $val_type:ty; $($elem:tt)* ) => {
         define_node! { $node, $val_type | | $($elem)* }
         impl_node_elem! { $node, $val_type | | $($elem)* }
+        impl_node_trait! { $node, $val_type, $($elem)* }
+        impl_rev_trait! { $node, $val_type, $($elem)* }
+        impl_size_trait! { $node, $val_type, $($elem)* }
+        impl_fold_trait! { $node, $val_type, $($elem)* }
     };
 }
 
 #[cfg(test)]
 mod node_macro_test {
-    use super::*;
+    use crate::data_structures::node_traits::*;
 
     struct M(usize);
     def_node! { NodeTest, M; size, rev, }
