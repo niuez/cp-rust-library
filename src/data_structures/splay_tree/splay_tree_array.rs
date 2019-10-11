@@ -151,7 +151,10 @@ pub struct SplayRange<'a, N: SplayArrayNode> {
 
 impl<'a, N: SplayArrayNode> Drop for SplayRange<'a, N> {
     fn drop(&mut self) {
-        self.before.root = merge(self.left.root.take(), self.right.root.take());
+        self.before.root = self.left.take()
+            .merge(self.center.take())
+            .merge(self.right.take())
+            .root.take();
     }
 }
 

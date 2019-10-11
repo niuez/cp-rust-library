@@ -50,7 +50,7 @@ macro_rules! impl_node_elem {
         impl_node_elem! { $node, $val_type | $($e: $v,)* size: 1, | $($elem)* }
     };
     ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | fold, $($elem:tt)*) => {
-        impl_node_elem! { $node, $val_type | $($e: $v,)* fold: $val_type::identity(), | $($elem)* }
+        impl_node_elem! { $node, $val_type | $($e: $v,)* fold: <$val_type as Unital>::identity(), | $($elem)* }
     };
     ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | rev, $($elem:tt)*) => {
         impl_node_elem! { $node, $val_type | $($e: $v,)* rev: false, | $($elem)* }
