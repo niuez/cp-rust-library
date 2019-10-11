@@ -102,28 +102,115 @@ fn split<N: SplayArrayNode>(x: Link<N>, i: usize) -> (Link<N>, Link<N>) {
     }
 }
 
-pub struct SplayTree<N: SplayArrayNode> {
+pub struct SplayArray<N: SplayArrayNode> {
     root: Link<N>,
 }
 
-impl<N: SplayArrayNode> SplayTree<N> {
-    pub fn empty() -> Self { SplayTree { root: None } }
-    pub fn new(node: N) -> Self { SplayTree { root: Some(Box::new(node)) } }
-    pub fn merge(self, other: Self) -> Self { SplayTree { root: merge(self.root, other.root) } }
+impl<N: SplayArrayNode> SplayArray<N> {
+    pub fn empty() -> Self { SplayArray { root: None } }
+    pub fn new(node: N) -> Self { SplayArray { root: Some(Box::new(node)) } }
+    pub fn len(&self) -> usize { size(&self.root) }
+    pub fn merge(self, other: Self) -> Self { SplayArray { root: merge(self.root, other.root) } }
     pub fn split(self, i: usize) -> (Self, Self) {
         let (l, r) = split(self.root, i);
-        ( SplayTree { root: l }, SplayTree { root: r })
+        ( SplayArray { root: l }, SplayArray { root: r })
     }
     pub fn at(&mut self, i: usize) -> &N::Value {
         self.root = Some(splay(self.root.take().unwrap(), i));
         self.root.as_ref().unwrap().value()
     }
+    pub fn take(&mut self) -> Self {
+        SplayArray { root: self.root.take() }
+    }
+    pub fn range<'a>(&'a mut self, ran: std::ops::Range<usize>) -> SplayRange<'a, N> {
+        let (l, r) = self.take().split(ran.end);
+        let (l, c) = l.split(ran.start);
+        SplayRange {
+            before: self,
+            left: l,
+            center: c,
+            right: r,
+        }
+    }
 }
 
-impl<N: SplayArrayNode + FoldNode> SplayTree<N> where N::Value: Monoid {
+impl<N: SplayArrayNode + FoldNode> SplayArray<N> where N::Value: Monoid {
     pub fn fold(&self) -> N::Value { fold(&self.root) }
 }
 
-impl<N: SplayArrayNode + ReversibleNode> SplayTree<N> {
+impl<N: SplayArrayNode + ReversibleNode> SplayArray<N> {
     pub fn reverse(&mut self) { self.root.as_mut().map(|r| r.as_mut().reverse()); }
+}
+
+pub struct SplayRange<'a, N: SplayArrayNode> {
+    before: &'a mut SplayArray<N>,
+    left: SplayArray<N>,
+    center: SplayArray<N>,
+    right: SplayArray<N>,
+}
+
+impl<'a, N: SplayArrayNode> Drop for SplayRange<'a, N> {
+    fn drop(&mut self) {
+        self.before.root = merge(self.left.root.take(), self.right.root.take());
+    }
+}
+
+impl<'a, N: SplayArrayNode> SplayRange<'a, N> {
+    pub fn take(&mut self) -> SplayArray<N> { SplayArray { root: self.center.root.take() } }
+    pub fn len(&self) -> usize { size(&self.center.root) }
+    pub fn at(&mut self, i: usize) -> &N::Value {
+        self.center.root = Some(splay(self.center.root.take().unwrap(), i));
+        self.center.root.as_ref().unwrap().value()
+    }
+}
+
+impl<'a, N: SplayArrayNode + FoldNode> SplayRange<'a, N> where N::Value: Monoid {
+    pub fn fold(&self) -> N::Value { fold(&self.center.root) }
+}
+
+impl<'a, N: SplayArrayNode + ReversibleNode> SplayRange<'a, N> {
+    pub fn reverse(&mut self) { self.center.root.as_mut().map(|r| r.as_mut().reverse()); }
+}
+
+
+#[cfg(test)]
+mod splay_array_test {
+    use crate::data_structures::node_traits::*;
+    use super::*;
+
+    struct U(usize);
+    def_node! { NodeU, U; size, rev, }
+
+    fn generate_10sp() -> SplayArray<NodeU> {
+        let mut sp = SplayArray::empty();
+        for i in 0..10 {
+            sp = sp.merge(
+                SplayArray::new( NodeU::new(U(i)) )
+                );
+        }
+        sp
+    }
+    
+    #[test]
+    fn splay_array_test() {
+        let sp = generate_10sp();
+        assert_eq!(sp.len(), 10);
+        let (mut l, r) = sp.split(3);
+        assert_eq!(l.len(), 3);
+        assert_eq!(r.len(), 7);
+        l.reverse();
+        let mut sp = r.merge(l);
+        assert_eq!(sp.at(6).0, 9);
+        assert_eq!(sp.at(7).0, 2);
+
+        let mut sp = generate_10sp();
+        {
+            let mut ran = sp.range(1..5);
+            assert_eq!(ran.at(0).0, 1);
+            let center = ran.take();
+            assert_eq!(center.len(), 4);
+        }
+        assert_eq!(sp.at(0).0, 0);
+        assert_eq!(sp.len(), 6);
+    }
 }

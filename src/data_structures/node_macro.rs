@@ -130,11 +130,40 @@ macro_rules! impl_rev_trait {
         impl_rev_trait! { $node, $val_type, $($elem)* }
     };
 }
+#[macro_export]
+macro_rules! impl_rev2_trait {
+    ($node:ident, $val_type:ty | off | off | ) => {};
+    ($node:ident, $val_type:ty | off | on | ) => {};
+    ($node:ident, $val_type:ty | on | off | ) => {
+        impl ReversibleNode for $node {
+            fn reverse(&mut self) {
+                self.rev ^= true;
+            }
+        }
+    };
+    ($node:ident, $val_type:ty | on | on | ) => {
+        impl ReversibleNode for $node {
+            fn reverse(&mut self) {
+                self.rev ^= true;
+                self.fold = self.fold.reverse();
+            }
+        }
+    };
+    ($node:ident, $val_type:ty | $r:tt | $f:tt | rev, $($tail:tt)*) => {
+        impl_rev2_trait! { $node, $val_type | on | $f | $($tail)* }
+    };
+    ($node:ident, $val_type:ty | $r:tt | $f:tt | fold, $($tail:tt)*) => {
+        impl_rev2_trait! { $node, $val_type | $r | on | $($tail)* }
+    };
+    ($node:ident, $val_type:ty | $r:tt | $f:tt | $head:tt, $($tail:tt)*) => {
+        impl_rev2_trait! { $node, $val_type | $r | $f | $($tail)* }
+    };
+}
 
 #[macro_export]
 macro_rules! impl_size_trait {
     ($node:ident, $val_type:ty, ) => {};
-    ($node:ident, $val_type:ty, rev, $($tail:tt)*) => {
+    ($node:ident, $val_type:ty, size, $($tail:tt)*) => {
         impl SizeNode for $node { fn size(&self) -> usize { self.size } }
     };
     ($node:ident, $val_type:ty, $head:tt, $($elem:tt)*) => {
@@ -160,7 +189,7 @@ macro_rules! def_node {
         define_node! { $node, $val_type | | $($elem)* }
         impl_node_elem! { $node, $val_type | | $($elem)* }
         impl_node_trait! { $node, $val_type, $($elem)* }
-        impl_rev_trait! { $node, $val_type, $($elem)* }
+        impl_rev2_trait! { $node, $val_type | off | off | $($elem)* }
         impl_size_trait! { $node, $val_type, $($elem)* }
         impl_fold_trait! { $node, $val_type, $($elem)* }
     };
