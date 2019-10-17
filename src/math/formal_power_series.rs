@@ -5,6 +5,10 @@ pub struct FormalPowerSeries<M: NttMod> {
     coef: Vec<ModInt<M>>
 }
 
+impl<M: NttMod> Clone for FormalPowerSeries<M> {
+    fn clone(&self) -> Self { FormalPowerSeries { coef: self.coef.clone() } }
+}
+
 impl<M: NttMod> FormalPowerSeries<M> {
     pub fn new(coef: &[ModInt<M>]) -> Self {
         let mut coef = coef.to_vec();
@@ -19,6 +23,14 @@ impl<M: NttMod> FormalPowerSeries<M> {
     pub fn pre(mut self, d: usize) -> Self {
         self.coef.resize(d, M::new(0));
         self
+    }
+
+    pub fn inv(&self) -> Self {
+        let mut g = FormalPowerSeries::new(&[self[0].inv()]);
+        for i in 0..self.len().trailing_zeros() {
+            g = (g.clone() * M::new(2) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
+        }
+        g.pre(self.len())
     }
 }
 
@@ -60,4 +72,20 @@ impl<M: NttMod> std::ops::Mul for FormalPowerSeries<M> {
         for i in 0..n { a[i] *= b[i]; }
         FormalPowerSeries { coef: inverse_numeric_theoretic_transform(&a) }
     }
+}
+
+impl<M: NttMod> std::ops::Mul<ModInt<M>> for FormalPowerSeries<M> {
+    type Output = Self;
+    fn mul(mut self, rhs: ModInt<M>) -> Self {
+        for i in 0..self.len() { self[i] *= rhs; }
+        self
+    }
+}
+
+#[test]
+fn inv_test() {
+    type M = NttMod976224257;
+    type P = FormalPowerSeries<M>;
+    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    assert_eq!(p.inv().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
