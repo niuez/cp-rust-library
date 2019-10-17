@@ -1,6 +1,7 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
 pub trait Mod: Sized {
+    fn new(a: u64) -> ModInt<Self> { ModInt::new(a) }
     fn m() -> u64;
 }
 
