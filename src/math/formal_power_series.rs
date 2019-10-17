@@ -12,7 +12,7 @@ impl<M: NttMod> FormalPowerSeries<M> {
                  - coef.len().leading_zeros()
                  - if coef.len().count_ones() == 1 { 1 } else { 0 }
                  ) as usize;
-        coef.resize(n, M::new(0));
+        coef.resize(1 << n, M::new(0));
         FormalPowerSeries { coef }
     }
     pub fn len(&self) -> usize { self.coef.len() }
@@ -46,7 +46,7 @@ impl<M: NttMod> std::ops::Sub for FormalPowerSeries<M> {
     fn sub(self, rhs: Self) -> Self {
         let n = std::cmp::max(self.len(), rhs.len());
         let mut next = self.pre(n);
-        for i in 0..rhs.len() { next[i] += rhs[i]; }
+        for i in 0..rhs.len() { next[i] -= rhs[i]; }
         next
     }
 }
@@ -54,7 +54,10 @@ impl<M: NttMod> std::ops::Sub for FormalPowerSeries<M> {
 impl<M: NttMod> std::ops::Mul for FormalPowerSeries<M> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        let n = std::cmp::max(self.len(), rhs.len());
-        unimplemented!();
+        let n = std::cmp::max(self.len(), rhs.len()) << 1;
+        let mut a = numeric_theoretic_transform(&self.pre(n).coef);
+        let b = numeric_theoretic_transform(&rhs.pre(n).coef);
+        for i in 0..n { a[i] *= b[i]; }
+        FormalPowerSeries { coef: inverse_numeric_theoretic_transform(&a) }
     }
 }
