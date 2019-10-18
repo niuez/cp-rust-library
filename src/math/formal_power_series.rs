@@ -32,6 +32,28 @@ impl<M: NttMod> FormalPowerSeries<M> {
         }
         g.pre(self.len())
     }
+
+    pub fn inv2(&self) -> Self {
+        let mut g = FormalPowerSeries::new(&[self[0].inv()]);
+        let n = self.len();
+        for i in 0..self.len().trailing_zeros() {
+            g = g.pre(1 << (i + 1));
+            let mut ft = numeric_theoretic_transform(&self.clone().pre(1 << (i + 1)).coef);
+            let gt = numeric_theoretic_transform(&g.coef);
+            for j in 0..(1 << (i + 1)) { ft[j] *= gt[j]; }
+            let mut e = inverse_numeric_theoretic_transform(&ft);
+            for j in 0..(1 << i) {
+                e[j] = ModInt::new(0);
+                e[j + (1 << i)] = e[j + (1 << i)] * ModInt::newi(-1);
+            }
+            let mut et = numeric_theoretic_transform(&e);
+            for j in 0..(1 << (i + 1)) { et[j] *= gt[j] }
+            let mut e = inverse_numeric_theoretic_transform(&et);
+            for j in 0..(1 << i) { e[j] = g[j] }
+            g.coef = e;
+        }
+        g.pre(n)
+    }
 }
 
 impl<M: NttMod> std::ops::Index<usize> for FormalPowerSeries<M> {
@@ -88,4 +110,12 @@ fn inv_test() {
     type P = FormalPowerSeries<M>;
     let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
     assert_eq!(p.inv().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
+}
+
+#[test]
+fn inv2_test() {
+    type M = NttMod976224257;
+    type P = FormalPowerSeries<M>;
+    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
