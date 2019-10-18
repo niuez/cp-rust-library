@@ -1,10 +1,14 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
+/// For calculating on the runtime modulo
 pub struct RtModInt { a: i64, m: i64, }
 
 impl RtModInt {
+    /// Create new ModInt from `a: u64` by modulo `m: i64`
     pub fn new(a: i64, m: i64) -> Self { RtModInt { a: a % m, m: m} }
+    /// Get value of ModInt as `i64`
     pub fn value(&self) -> i64 { self.a }
+    /// Raises self to the power of `p` by squaring
     pub fn pow(&self, p: i64) -> Self {
         let mut exp = p;
         let mut now = *self;
