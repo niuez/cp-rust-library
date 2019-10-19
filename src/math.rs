@@ -1,3 +1,4 @@
+#[macro_use]
 pub mod modint;
 pub mod runtime_modint;
 pub mod complex;

@@ -1,3 +1,40 @@
+/// Reading from standard input
+///
+/// `input!` is useful for competition programming.
+/// There are some forms.
+///
+/// - Tuple
+///
+/// ```
+/// use cp_rust_library::*;
+/// input! { source = "2 3", ab: (usize, usize), }
+/// assert_eq!(ab.0, 2);
+/// assert_eq!(ab.1, 3);
+/// ```
+///
+/// - Array
+/// ```
+/// use cp_rust_library::*;
+/// input! { source = "1 2 3 4", a: [usize; 4], }
+/// assert_eq!(a, vec![1, 2, 3, 4]);
+/// ```
+///
+/// - String -> Vec<char>
+/// ```
+/// use cp_rust_library::*;
+/// input! { source = "qwerty", s: chars, }
+/// assert_eq!('q', s[0]);
+/// ```
+///
+/// - Other
+/// ```
+/// use cp_rust_library::*;
+/// input! { source = "123", a: usize, }
+/// assert_eq!(123, a);
+/// ```
+/// 
+/// This macro will use parse::<$type>() to parse string.
+
 #[macro_export]
 macro_rules! input {
     (source = $s:expr, $($r:tt)*) => {
@@ -41,7 +78,7 @@ macro_rules! read_value {
     
     // string
     ($iter:expr, chars) => {
-        read_value!($iter, String).chars(),collect::<Vec<char>>()
+        read_value!($iter, String).chars().collect::<Vec<char>>()
     };
     
     // any other

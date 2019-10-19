@@ -4,16 +4,22 @@ use std::ops::{ Add, AddAssign,
                 Div, DivAssign,
 };
 
+/// Complex number
 pub struct Complex {
     pub x: f64,
     pub y: f64,
 }
 
 impl Complex {
+    /// Create a new complex number from `x + iy`.
     pub fn new(x: f64, y: f64) -> Self { Complex { x: x, y: y } }
+    /// Create a new complex number from `r * e^(i * theta)`>
     pub fn polar(r: f64, theta: f64) -> Self { Complex::new(r * theta.cos(), r * theta.sin()) }
+    /// Get the conjugate complex number of self.
     pub fn conj(&self) -> Self { Complex::new(self.x, -self.y) }
+    /// Get the absolute value of self.
     pub fn abs(&self) -> f64 { (self.x * self.x + self.y * self.y).sqrt() }
+    /// Get the argument value of self by atan2.
     pub fn arg(&self) -> f64 { self.y.atan2(self.x) }
 }
 

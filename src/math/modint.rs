@@ -1,10 +1,29 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
+/// Static mod for ModInt
+///
+/// `Mod` has a static modulo number.
 pub trait Mod: Sized {
+    /// Create new ModInt from integer a.
     fn new(a: u64) -> ModInt<Self> { ModInt::new(a) }
+    /// The static modulo number.
     fn m() -> u64;
 }
 
+/// Define new modulo easily
+///
+/// This macro help define new modulo.
+///
+/// # Example
+///
+/// ```
+/// use cp_rust_library::*;
+/// use cp_rust_library::math::modint::*;
+/// const_mod! { MOD, 17 }
+/// fn main() {
+///     assert_eq!(MOD::m(), 17)
+/// }
+/// ```
 #[macro_export]
 macro_rules! const_mod {
     ($st: ident, $m: expr) => {
@@ -13,12 +32,17 @@ macro_rules! const_mod {
     }
 }
 
+/// For calculating on the modulo
 pub struct ModInt<M: Mod> { a: u64, _p: std::marker::PhantomData<M> }
 
 impl<M: Mod> ModInt<M> {
+    /// Create new ModInt from `a: u64`
     pub fn new(a: u64) -> Self { ModInt { a: a % M::m() as u64, _p: std::marker::PhantomData } }
+    /// Create new ModInt from `a: i64`
     pub fn newi(a: i64) -> Self { ModInt { a: (a + M::m() as i64) as u64 % M::m(), _p: std::marker::PhantomData } }
+    /// Get value of ModInt as `u64`
     pub fn value(&self) -> u64 { self.a }
+    /// Raises self to the power of `p` by squaring
     pub fn pow(&self, p: u64) -> Self {
         let mut exp = p;
         let mut now = *self;
@@ -30,6 +54,7 @@ impl<M: Mod> ModInt<M> {
         }
         ans
     }
+    /// Get the inverse elements of self on modulo
     pub fn inv(&self) -> Self { self.pow(M::m() - 2) }
 }
 
