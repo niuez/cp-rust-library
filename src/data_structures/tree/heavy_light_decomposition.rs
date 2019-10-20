@@ -25,11 +25,11 @@ impl HeavyLightDecomposition {
         self.seq.push(v);
         t = t + 1;
         if let Some(h) = self.heavy[v] {
-            t = self.dfs_hld(tree, h, t);
             self.next[h] = self.next[v];
-            for &u in tree.next(v) {
-                t = self.dfs_hld(tree, u, t);
+            t = self.dfs_hld(tree, h, t);
+            for &u in tree.next(v).filter(|&&u| u != h) {
                 self.next[u] = Some(u);
+                t = self.dfs_hld(tree, u, t);
             }
         }
         self.dout[v] = t;
@@ -50,6 +50,7 @@ impl HeavyLightDecomposition {
         hld.dfs_hld(tree, tree.root(), 0);
         hld
     }
+    pub fn sequence(&self) -> std::slice::Iter<usize> { self.seq.iter() }
     pub fn lca(&self, mut v: usize, mut u: usize) -> usize {
         loop {
             if self.din[u] > self.din[v] { std::mem::swap(&mut v, &mut u); }
@@ -58,7 +59,7 @@ impl HeavyLightDecomposition {
         }
         u
     }
-    pub fn path(&self, mut v: usize, mut u: usize) -> (Vec<std::ops::Range<usize>>, Vec<std::ops::Range<usize>>) {
+    pub fn path(&self, mut v: usize, mut u: usize, edge: bool) -> (Vec<std::ops::Range<usize>>, Vec<std::ops::Range<usize>>) {
         let mut l = Vec::new();
         let mut r = Vec::new();
         loop {
@@ -67,7 +68,8 @@ impl HeavyLightDecomposition {
                 std::mem::swap(&mut l, &mut r);
             }
             if self.next[u] == self.next[v] {
-                l.push(self.din[u]..self.din[v] + 1);
+                let e = if edge { 1 } else { 0 };
+                l.push(self.din[u] + e..self.din[v] + 1);
                 break
             }
             else {
@@ -78,5 +80,5 @@ impl HeavyLightDecomposition {
         }
         (l, r)
     }
-    pub fn subtree(&self, v: usize) -> std::ops::Range<usize> { self.din[v]..self.dout[v] }
+    pub fn subtree(&self, v: usize, edge: bool) -> std::ops::Range<usize> { self.din[v] + if edge { 1 } else { 0 }..self.dout[v] }
 }
