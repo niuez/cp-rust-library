@@ -1,2 +1,2 @@
 pub mod directed_tree;
-pub mod dfs_sequence;
+pub mod heavy_light_decomposition;
