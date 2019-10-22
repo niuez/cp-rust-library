@@ -22,8 +22,7 @@ impl<T: LineDecimal> MonotoneCHT<T> {
         self.lines.push_front(ln);
     }
     pub fn push_back(&mut self, ln: Line<T>) {
-        let n = self.lines.len();
-        while 1 < self.lines.len() && MonotoneCHT::check(&self.lines[n - 2], &self.lines[n - 1], &ln) {
+        while 1 < self.lines.len() && MonotoneCHT::check(&self.lines[self.lines.len() - 2], &self.lines[self.lines.len() - 1], &ln) {
             self.lines.pop_back();
         }
         self.lines.push_back(ln);
@@ -47,6 +46,7 @@ impl<T: LineDecimal> MonotoneCHT<T> {
     }
 
     pub fn incl_query(&self) -> MonotoneCHTInclQuery<T> { MonotoneCHTInclQuery { lines: &self.lines, i: 0 } }
+    pub fn deq_query(&self) -> MonotoneCHTDeqQuery<T> { MonotoneCHTDeqQuery { lines: &self.lines, i: self.lines.len() - 1 } }
 }
 
 pub struct MonotoneCHTInclQuery<'a, T: LineDecimal> {
@@ -58,6 +58,20 @@ impl<'a, T: LineDecimal> MonotoneCHTInclQuery<'a, T> {
     pub fn min_value(&mut self, x: T) -> T {
         while self.i + 1 < self.lines.len() && self.lines[self.i].get(x) >= self.lines[self.i + 1].get(x) {
             self.i += 1;
+        }
+        self.lines[self.i].get(x)
+    }
+}
+
+pub struct MonotoneCHTDeqQuery<'a, T: LineDecimal> {
+    lines: &'a VecDeque<Line<T>>,
+    i: usize,
+}
+
+impl<'a, T: LineDecimal> MonotoneCHTDeqQuery<'a, T> {
+    pub fn min_value(&mut self, x: T) -> T {
+        while self.i > 0 && self.lines[self.i].get(x) >= self.lines[self.i - 1].get(x) {
+            self.i -= 1;
         }
         self.lines[self.i].get(x)
     }
