@@ -2,8 +2,8 @@ use crate::dp::*;
 
 use std::ops::Add;
 
-pub fn knuth_yao_speedup<F: QuadrangleInequality>(init: &[F::Output], f: &F) -> Vec<Vec<Option<F::Output>>>
-where F::Output: Add<F::Output, Output=F::Output> + Ord {
+pub fn knuth_yao_speedup<F: Monge>(init: &[F::Output], f: &F) -> Vec<Vec<Option<F::Output>>>
+where F::Output: Add<F::Output, Output=F::Output> {
     let n = f.len();
     let mut dp = (0..n).map(|i| vec![None; n - i]).collect::<Vec<_>>();
     let mut k = (0..n).map(|i| vec![0; n - i]).collect::<Vec<_>>();
