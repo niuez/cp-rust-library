@@ -7,3 +7,5 @@ pub mod algebra;
 pub mod data_structures;
 
 pub mod math;
+
+pub mod dp;
