@@ -5,3 +5,4 @@ pub mod complex;
 pub mod convolution;
 pub mod formal_power_series;
 pub mod garner;
+pub mod fps_multiply;
