@@ -1,4 +1,4 @@
-use crate::math::fps_multiply::{ BasicOpe, FpsMultiply };
+use crate::math::fps_multiply::FpsMultiply;
 
 use std::ops::{ Add, Sub, Mul, Div };
 
@@ -38,7 +38,7 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
     }
 
     pub fn inv2(&self) -> Self {
-        let mut g = FormalPowerSeries::new(&[FM::Target::from(1) / self[0]]);
+        let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
         let n = self.len();
         for i in 0..self.len().trailing_zeros() {
             /*
