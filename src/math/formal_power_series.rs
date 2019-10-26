@@ -1,105 +1,120 @@
 use crate::math::modint::*;
 use crate::math::convolution::numeric_theoretic_transform::*;
 
-pub struct FormalPowerSeries<M: NttMod> {
-    coef: Vec<ModInt<M>>
+use std::ops::{ Add, Sub, Mul, Div };
+
+pub trait BasicOpe: Sized + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Copy + From<i64> {}
+impl<T: Sized + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Copy + From<i64>> BasicOpe for T {}
+
+pub trait FpsMultiply: Sized {
+    type Target: BasicOpe;
+    type Output: Clone;
+    fn dft(arr: &[Self::Target]) -> Vec<Self::Output>;
+    fn idft(arr: &[Self::Output]) -> Vec<Self::Target>;
+    fn multiply(a: Vec<Self::Output>, b: Vec<Self::Output>) -> Vec<Self::Output>;
 }
 
-impl<M: NttMod> Clone for FormalPowerSeries<M> {
-    fn clone(&self) -> Self { FormalPowerSeries { coef: self.coef.clone() } }
+pub struct FormalPowerSeries<T: BasicOpe, FM: FpsMultiply<Target=T>> {
+    coef: Vec<T>,
+    _p: std::marker::PhantomData<FM>,
 }
 
-impl<M: NttMod> FormalPowerSeries<M> {
-    pub fn new(coef: &[ModInt<M>]) -> Self {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Clone for FormalPowerSeries<T, FM> {
+    fn clone(&self) -> Self { FormalPowerSeries::new_raw(self.coef.clone()) }
+}
+
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> FormalPowerSeries<T, FM> {
+    fn new_raw(coef: Vec<T>) -> Self { FormalPowerSeries { coef: coef, _p: std::marker::PhantomData } }
+    pub fn new(coef: &[T]) -> Self {
         let mut coef = coef.to_vec();
         let n = (0usize.count_zeros()
                  - coef.len().leading_zeros()
                  - if coef.len().count_ones() == 1 { 1 } else { 0 }
                  ) as usize;
-        coef.resize(1 << n, M::new(0));
-        FormalPowerSeries { coef }
+        coef.resize(1 << n, T::from(0i64));
+        FormalPowerSeries::new_raw(coef)
     }
     pub fn len(&self) -> usize { self.coef.len() }
     pub fn pre(mut self, d: usize) -> Self {
-        self.coef.resize(d, M::new(0));
+        self.coef.resize(d, T::from(0i64));
         self
     }
 
     pub fn inv(&self) -> Self {
-        let mut g = FormalPowerSeries::new(&[self[0].inv()]);
+        let mut g = FormalPowerSeries::new(&[T::from(1) / self[0]]);
         for i in 0..self.len().trailing_zeros() {
-            g = (g.clone() * M::new(2) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
+            g = (g.clone() * T::from(2i64) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
         }
         g.pre(self.len())
     }
 
     pub fn inv2(&self) -> Self {
-        let mut g = FormalPowerSeries::new(&[self[0].inv()]);
+        let mut g = FormalPowerSeries::new(&[T::from(1) / self[0]]);
         let n = self.len();
         for i in 0..self.len().trailing_zeros() {
+            /*
             g = g.pre(1 << (i + 1));
             let mut ft = numeric_theoretic_transform(&self.clone().pre(1 << (i + 1)).coef);
             let gt = numeric_theoretic_transform(&g.coef);
             for j in 0..(1 << (i + 1)) { ft[j] *= gt[j]; }
             let mut e = inverse_numeric_theoretic_transform(&ft);
+            */
+            g = g.pre(1 << (i + 1));
+            let gdft = FM::dft(&g.coef);
+            let mut e = FM::idft(&FM::multiply(FM::dft(&self.clone().pre(1 << (i + 1)).coef), gdft.clone()));
             for j in 0..(1 << i) {
-                e[j] = ModInt::new(0);
-                e[j + (1 << i)] = e[j + (1 << i)] * ModInt::newi(-1);
+                e[j] = T::from(0i64);
+                e[j + (1 << i)] = e[j + (1 << i)].clone() * T::from(-1i64);
             }
-            let mut et = numeric_theoretic_transform(&e);
-            for j in 0..(1 << (i + 1)) { et[j] *= gt[j] }
-            let mut e = inverse_numeric_theoretic_transform(&et);
-            for j in 0..(1 << i) { e[j] = g[j] }
+            let mut e = FM::idft(&FM::multiply(FM::dft(&e), gdft));
+            for j in 0..(1 << i) { e[j] = g[j].clone() }
             g.coef = e;
         }
         g.pre(n)
     }
 }
 
-impl<M: NttMod> std::ops::Index<usize> for FormalPowerSeries<M> {
-    type Output = ModInt<M>;
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> std::ops::Index<usize> for FormalPowerSeries<T, FM> {
+    type Output = T;
     fn index(&self, i: usize) -> &Self::Output { &self.coef[i] }
 }
 
-impl<M: NttMod> std::ops::IndexMut<usize> for FormalPowerSeries<M> {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> std::ops::IndexMut<usize> for FormalPowerSeries<T, FM> {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output { &mut self.coef[i] }
 }
 
-impl<M: NttMod> std::ops::Add for FormalPowerSeries<M> {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Add for FormalPowerSeries<T, FM> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
         let n = std::cmp::max(self.len(), rhs.len());
         let mut next = self.pre(n);
-        for i in 0..rhs.len() { next[i] += rhs[i]; }
+        for i in 0..rhs.len() { next[i] = next[i] + rhs[i]; }
         next
     }
 }
 
-impl<M: NttMod> std::ops::Sub for FormalPowerSeries<M> {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Sub for FormalPowerSeries<T, FM> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         let n = std::cmp::max(self.len(), rhs.len());
         let mut next = self.pre(n);
-        for i in 0..rhs.len() { next[i] -= rhs[i]; }
+        for i in 0..rhs.len() { next[i] = next[i] - rhs[i]; }
         next
     }
 }
 
-impl<M: NttMod> std::ops::Mul for FormalPowerSeries<M> {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Mul for FormalPowerSeries<T, FM> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         let n = std::cmp::max(self.len(), rhs.len()) << 1;
-        let mut a = numeric_theoretic_transform(&self.pre(n).coef);
-        let b = numeric_theoretic_transform(&rhs.pre(n).coef);
-        for i in 0..n { a[i] *= b[i]; }
-        FormalPowerSeries { coef: inverse_numeric_theoretic_transform(&a) }
+        Self::new_raw(FM::idft(&FM::multiply(FM::dft(&self.pre(n).coef), FM::dft(&rhs.pre(n).coef))))
     }
 }
 
-impl<M: NttMod> std::ops::Mul<ModInt<M>> for FormalPowerSeries<M> {
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Mul<T> for FormalPowerSeries<T, FM> {
     type Output = Self;
-    fn mul(mut self, rhs: ModInt<M>) -> Self {
-        for i in 0..self.len() { self[i] *= rhs; }
+    fn mul(mut self, rhs: T) -> Self {
+        for i in 0..self.len() { self[i] = self[i] * rhs; }
         self
     }
 }
