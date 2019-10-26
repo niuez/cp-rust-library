@@ -41,13 +41,6 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
         let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
         let n = self.len();
         for i in 0..self.len().trailing_zeros() {
-            /*
-            g = g.pre(1 << (i + 1));
-            let mut ft = numeric_theoretic_transform(&self.clone().pre(1 << (i + 1)).coef);
-            let gt = numeric_theoretic_transform(&g.coef);
-            for j in 0..(1 << (i + 1)) { ft[j] *= gt[j]; }
-            let mut e = inverse_numeric_theoretic_transform(&ft);
-            */
             g = g.pre(1 << (i + 1));
             let gdft = FM::dft(&g.coef);
             let mut e = FM::idft(&FM::multiply(FM::dft(&self.clone().pre(1 << (i + 1)).coef), gdft.clone()));
@@ -146,6 +139,17 @@ fn inv2_test() {
 }
 
 #[test]
+fn inv2_test2() {
+    use crate::math::modint::*;
+    use crate::math::convolution::numeric_theoretic_transform::NttMod998244353;
+    use crate::math::fps_multiply::ntt_multiply::NttMultiply;
+    type FM = NttMultiply<NttMod998244353>;
+    type P = FormalPowerSeries<FM>;
+    let p = P::new(&[ModInt::new(5), ModInt::newi(4), ModInt::newi(3), ModInt::newi(2), ModInt::newi(1)]).pre(16);
+    println!("{:?}", p.inv2().coef.into_iter().map(|x| x.value()).collect::<Vec<_>>());
+}
+
+#[test]
 fn fft_fps_test() {
     use crate::math::modint::*;
     use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
@@ -155,3 +159,4 @@ fn fft_fps_test() {
     let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
     assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
+
