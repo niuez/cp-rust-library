@@ -1,18 +1,7 @@
-use crate::math::modint::*;
-use crate::math::convolution::numeric_theoretic_transform::*;
+use crate::math::fps_multiply::{ BasicOpe, FpsMultiply };
 
 use std::ops::{ Add, Sub, Mul, Div };
 
-pub trait BasicOpe: Sized + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Copy + From<i64> {}
-impl<T: Sized + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Copy + From<i64>> BasicOpe for T {}
-
-pub trait FpsMultiply: Sized {
-    type Target: BasicOpe;
-    type Output: Clone;
-    fn dft(arr: &[Self::Target]) -> Vec<Self::Output>;
-    fn idft(arr: &[Self::Output]) -> Vec<Self::Target>;
-    fn multiply(a: Vec<Self::Output>, b: Vec<Self::Output>) -> Vec<Self::Output>;
-}
 
 pub struct FormalPowerSeries<T: BasicOpe, FM: FpsMultiply<Target=T>> {
     coef: Vec<T>,
@@ -119,18 +108,41 @@ impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Mul<T> for FormalPowerSeries<T, FM>
     }
 }
 
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Div for FormalPowerSeries<T, FM> {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self {
+        self * rhs.inv2()
+    }
+}
+
+impl<T: BasicOpe, FM: FpsMultiply<Target=T>> Div<T> for FormalPowerSeries<T, FM> {
+    type Output = Self;
+    fn div(mut self, rhs: T) -> Self {
+        for i in 0..self.len() { self[i] = self[i] / rhs; }
+        self
+    }
+}
+
 #[test]
 fn inv_test() {
+    use crate::math::modint::*;
+    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type M = NttMod976224257;
-    type P = FormalPowerSeries<M>;
+    type FM = NttMultiply<M>;
+    type P = FormalPowerSeries<ModInt<M>, FM>;
     let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
     assert_eq!(p.inv().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
 
 #[test]
 fn inv2_test() {
+    use crate::math::modint::*;
+    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type M = NttMod976224257;
-    type P = FormalPowerSeries<M>;
+    type FM = NttMultiply<M>;
+    type P = FormalPowerSeries<ModInt<M>, FM>;
     let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
     assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
