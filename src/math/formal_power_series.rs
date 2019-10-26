@@ -20,19 +20,19 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
                  - coef.len().leading_zeros()
                  - if coef.len().count_ones() == 1 { 1 } else { 0 }
                  ) as usize;
-        coef.resize(1 << n, FM::Target::from(0i64));
+        coef.resize(1 << n, FM::Target::from(0));
         FormalPowerSeries::new_raw(coef)
     }
     pub fn len(&self) -> usize { self.coef.len() }
     pub fn pre(mut self, d: usize) -> Self {
-        self.coef.resize(d, FM::Target::from(0i64));
+        self.coef.resize(d, FM::Target::from(0));
         self
     }
 
     pub fn inv(&self) -> Self {
         let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
         for i in 0..self.len().trailing_zeros() {
-            g = (g.clone() * FM::Target::from(2i64) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
+            g = (g.clone() * FM::Target::from(2) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
         }
         g.pre(self.len())
     }
@@ -52,8 +52,8 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
             let gdft = FM::dft(&g.coef);
             let mut e = FM::idft(&FM::multiply(FM::dft(&self.clone().pre(1 << (i + 1)).coef), gdft.clone()));
             for j in 0..(1 << i) {
-                e[j] = FM::Target::from(0i64);
-                e[j + (1 << i)] = e[j + (1 << i)].clone() * FM::Target::from(-1i64);
+                e[j] = FM::Target::from(0);
+                e[j + (1 << i)] = e[j + (1 << i)].clone() * FM::Target::from(-1);
             }
             let mut e = FM::idft(&FM::multiply(FM::dft(&e), gdft));
             for j in 0..(1 << i) { e[j] = g[j].clone() }
@@ -140,6 +140,17 @@ fn inv2_test() {
     use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod976224257>;
+    type P = FormalPowerSeries<FM>;
+    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
+}
+
+#[test]
+fn fft_fps_test() {
+    use crate::math::modint::*;
+    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::fps_multiply::fft_multiply::FftModMultiply;
+    type FM = FftModMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
     let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
     assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
