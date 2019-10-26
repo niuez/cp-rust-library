@@ -119,7 +119,7 @@ impl<T: Copy, FM: FpsMultiply> Div<T> for FormalPowerSeries<FM> where FM::Target
 #[test]
 fn inv_test() {
     use crate::math::modint::*;
-    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::convolution::number_theoretic_transform::NttMod976224257;
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
@@ -130,7 +130,7 @@ fn inv_test() {
 #[test]
 fn inv2_test() {
     use crate::math::modint::*;
-    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::convolution::number_theoretic_transform::NttMod976224257;
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
@@ -141,7 +141,7 @@ fn inv2_test() {
 #[test]
 fn inv2_test2() {
     use crate::math::modint::*;
-    use crate::math::convolution::numeric_theoretic_transform::NttMod998244353;
+    use crate::math::convolution::number_theoretic_transform::NttMod998244353;
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod998244353>;
     type P = FormalPowerSeries<FM>;
@@ -152,7 +152,7 @@ fn inv2_test2() {
 #[test]
 fn fft_fps_test() {
     use crate::math::modint::*;
-    use crate::math::convolution::numeric_theoretic_transform::NttMod976224257;
+    use crate::math::convolution::number_theoretic_transform::NttMod976224257;
     use crate::math::fps_multiply::fft_multiply::FftModMultiply;
     type FM = FftModMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
