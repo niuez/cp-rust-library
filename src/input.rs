@@ -35,6 +35,8 @@
 /// 
 /// This macro will use parse::<$type>() to parse string.
 
+use std::io::{ stdout, BufWriter, Write };
+
 #[macro_export]
 macro_rules! input {
     (source = $s:expr, $($r:tt)*) => {
@@ -85,6 +87,15 @@ macro_rules! read_value {
     ($iter:expr, $t:ty) => {
         $iter.next().unwrap().parse::<$t>().expect("Parse error")
     };
+}
+
+#[macro_export]
+macro_rules! output {
+    ($($t:expr),*) => {
+        let stdout_out = std::io::stdout();
+        let mut out_bufwriter = std::io::BufWriter::new(stdout_out.lock());
+        write!(out_bufwriter, $($t),*).unwrap();
+    }
 }
 
 #[test]
