@@ -9,3 +9,5 @@ pub mod data_structures;
 pub mod math;
 
 pub mod dp;
+
+pub mod binary_search;
