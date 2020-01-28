@@ -32,6 +32,10 @@ macro_rules! input {
         let $var = read_value!($iter, $t);
         input! { $iter, $($r)* }
     };
+    ($iter:expr, ($var:expr) : $t:tt, $($r:tt)*) => {
+        $var = read_value!($iter, $t);
+        input! { $iter, $($r)* }
+    };
 }
 
 #[macro_export]
