@@ -46,6 +46,10 @@ macro_rules! input {
         let $var = read_value!($iter, $t);
         input! { $iter, $($r)* }
     };
+    ($iter:expr, mut $var:ident : $t:tt, $($r:tt)*) => {
+        let mut $var = read_value!($iter, $t);
+        input! { $iter, $($r)* }
+    };
     ($iter:expr, ($var:expr) : $t:tt, $($r:tt)*) => {
         $var = read_value!($iter, $t);
         input! { $iter, $($r)* }
@@ -88,5 +92,13 @@ macro_rules! outset {
 macro_rules! output {
     ($buf:expr, $($t:expr),*) => {
         write!($buf, $($t),*).unwrap();
+    }
+}
+
+struct Chars<'a>(&'a Vec<char>);
+
+impl<'a> std::fmt::Display for Chars<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.0.iter().collect::<String>())
     }
 }
