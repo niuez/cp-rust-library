@@ -1,3 +1,17 @@
+/*
+    ioset! { inp, buf }
+    macro_rules! scan {
+        ($($r:tt)*) => {
+            input! { inp, $($r)* }
+        }
+    }
+    macro_rules! print {
+        ($($t:expr),*) => {
+            write!(buf, $($t),*).unwrap();
+        } 
+    }
+*/
+
 use std::io::{ stdout, BufWriter, Write };
 
 #[macro_export]
@@ -76,4 +90,3 @@ macro_rules! output {
         write!($buf, $($t),*).unwrap();
     }
 }
-
