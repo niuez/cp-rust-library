@@ -17,6 +17,9 @@ macro_rules! define_node {
     ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | size, $($elem:tt)*) => {
         define_node! { $node, $val_type | $($e: $t,)* size: usize, | $($elem)* }
     };
+    ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | height, $($elem:tt)*) => {
+        define_node! { $node, $val_type | $($e: $t,)* height: isize, | $($elem)* }
+    };
     ($node:ident, $val_type:ty | $($e:ident : $t:ty,)* | fold, $($elem:tt)*) => {
         define_node! { $node, $val_type | $($e: $t,)* fold: $val_type, | $($elem)* }
     };
@@ -49,6 +52,9 @@ macro_rules! impl_node_elem {
     ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | size, $($elem:tt)*) => {
         impl_node_elem! { $node, $val_type | $($e: $v,)* size: 1, | $($elem)* }
     };
+    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | height, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $($e: $v,)* height: 1, | $($elem)* }
+    };
     ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | fold, $($elem:tt)*) => {
         impl_node_elem! { $node, $val_type | $($e: $v,)* fold: <$val_type as Unital>::identity(), | $($elem)* }
     };
@@ -70,14 +76,10 @@ macro_rules! impl_node_trait {
             }
             fn child(&self, dir: usize) -> &Link<Self> { &self.child[dir] } 
             fn child_mut(&mut self, dir: usize) -> &mut Link<Self> { &mut self.child[dir] } 
-            fn take(&mut self, dir: usize) -> Link<Self> {
-                let nn = self.child[dir].take();
+            fn replace(&mut self, dir: usize, node: Link<Self>) -> Link<Self> {
+                let nn = std::mem::replace(&mut self.child[dir], node);
                 self.fix();
                 nn
-            }
-            fn set(&mut self, dir: usize, node: Link<Self> ) {
-                self.child[dir] = node;
-                self.fix();
             }
             fn value(&self) -> &Self::Value { &self.val }
             fn value_mut(&mut self) -> &mut Self::Value { &mut self.val }
@@ -91,6 +93,12 @@ macro_rules! impl_push {
     ($mself:expr, $val_type:ty, rev, $($elem:tt)*) => {
         if $mself.rev {
             $mself.child.swap(0, 1);
+            if let Some(ch) = $mself.child_mut(0).as_mut() {
+                ch.reverse();
+            }
+            if let Some(ch) = $mself.child_mut(1).as_mut() {
+                ch.reverse();
+            }
         }
         $mself.rev = false;
         impl_push! { $mself, $val_type, $($elem)* }
@@ -104,11 +112,17 @@ macro_rules! impl_push {
 macro_rules! impl_fix {
     ($mself:expr, $val_type:ty, ) => {};
     ($mself:expr, $val_type:ty, size, $($elem:tt)*) => {
-        $mself.size = size(&$mself.child[0]) + size(&$mself.child[1]) + 1;
+        $mself.size = $mself.child[0].size() + $mself.child[1].size() + 1;
+        impl_fix! { $mself, $val_type, $($elem)* }
+    };
+    ($mself:expr, $val_type:ty, height, $($elem:tt)*) => {
+        $mself.height = std::cmp::max($mself.child[0].height(), $mself.child[1].height()) + 1;
         impl_fix! { $mself, $val_type, $($elem)* }
     };
     ($mself:expr, $val_type:ty, fold, $($elem:tt)*) => {
-        $mself.fold = fold(&$mself.child[0]).op(&$mself.val).op(&fold(&$mself.child[1]));
+        $mself.fold = $mself.child[0].as_ref().map(|ch| ch.fold()).unwrap_or(<$val_type>::identity())
+            .op(&$mself.val)
+            .op(&$mself.child[1].as_ref().map(|ch| ch.fold()).unwrap_or(<$val_type>::identity()));
         impl_fix! { $mself, $val_type, $($elem)* }
     };
     ($mself:expr, $val_type:ty, $head:tt, $($elem:tt)*) => {
@@ -172,6 +186,17 @@ macro_rules! impl_size_trait {
 }
 
 #[macro_export]
+macro_rules! impl_height_trait {
+    ($node:ident, $val_type:ty, ) => {};
+    ($node:ident, $val_type:ty, height, $($tail:tt)*) => {
+        impl HeightNode for $node { fn height(&self) -> isize { self.height } }
+    };
+    ($node:ident, $val_type:ty, $head:tt, $($elem:tt)*) => {
+        impl_height_trait! { $node, $val_type, $($elem)* }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_fold_trait {
     ($node:ident, $val_type:ty, ) => {};
     ($node:ident, $val_type:ty, fold, $($tail:tt)*) => {
@@ -183,6 +208,7 @@ macro_rules! impl_fold_trait {
 }
 
 
+
 #[macro_export]
 macro_rules! def_node {
     ($node:ident, $val_type:ty; $($elem:tt)* ) => {
@@ -191,6 +217,7 @@ macro_rules! def_node {
         impl_node_trait! { $node, $val_type, $($elem)* }
         impl_rev2_trait! { $node, $val_type | off | off | $($elem)* }
         impl_size_trait! { $node, $val_type, $($elem)* }
+        impl_height_trait! { $node, $val_type, $($elem)* }
         impl_fold_trait! { $node, $val_type, $($elem)* }
     };
 }
