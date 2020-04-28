@@ -45,21 +45,40 @@ macro_rules! impl_node_new {
 }
 
 #[macro_export]
+macro_rules! impl_node_key_new {
+    ($node:ident, $val_type:ty, $key_type:ty, $($e:ident : $v: expr,)*) => {
+        impl $node {
+            fn new(key: $key_type, val: $val_type) -> Self {
+                Self {
+                    key: key,
+                    val: val,
+                    child: [Link::None, Link::None],
+                    $($e: $v),*
+                }
+            }
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! impl_node_elem {
-    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | ) => {
+    ($node:ident, $val_type:ty | off | $($e:ident : $v:expr,)* | ) => {
         impl_node_new! { $node, $val_type, $($e: $v,)* }
     };
-    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | size, $($elem:tt)*) => {
-        impl_node_elem! { $node, $val_type | $($e: $v,)* size: 1, | $($elem)* }
+    ($node:ident, $val_type:ty | $key_type:ty | $($e:ident : $v:expr,)* | ) => {
+        impl_node_key_new! { $node, $val_type, $key_type, $($e: $v,)* }
     };
-    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | height, $($elem:tt)*) => {
-        impl_node_elem! { $node, $val_type | $($e: $v,)* height: 1, | $($elem)* }
+    ($node:ident, $val_type:ty | $s:tt | $($e:ident : $v:expr,)* | size, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $s | $($e: $v,)* size: 1, | $($elem)* }
     };
-    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | fold, $($elem:tt)*) => {
-        impl_node_elem! { $node, $val_type | $($e: $v,)* fold: <$val_type as Unital>::identity(), | $($elem)* }
+    ($node:ident, $val_type:ty | $s:tt | $($e:ident : $v:expr,)* | height, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $s | $($e: $v,)* height: 1, | $($elem)* }
     };
-    ($node:ident, $val_type:ty | $($e:ident : $v:expr,)* | rev, $($elem:tt)*) => {
-        impl_node_elem! { $node, $val_type | $($e: $v,)* rev: false, | $($elem)* }
+    ($node:ident, $val_type:ty | $s:tt | $($e:ident : $v:expr,)* | fold, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $s | $($e: $v,)* fold: <$val_type as Unital>::identity(), | $($elem)* }
+    };
+    ($node:ident, $val_type:ty | $s:tt | $($e:ident : $v:expr,)* | rev, $($elem:tt)*) => {
+        impl_node_elem! { $node, $val_type | $s | $($e: $v,)* rev: false, | $($elem)* }
     };
 }
 
@@ -206,18 +225,43 @@ macro_rules! impl_fold_trait {
     };
 }
 
+#[macro_export]
+macro_rules! impl_key_search {
+    ($node:ident, $key_type:ty) => {
+        impl<'a> KeySearch<&'a $key_type> for $node {
+            fn key_search(&self, key: &'a $key_type) -> Option<(usize, &'a $key_type)> {
+                match self.key.cmp(key) {
+                    std::cmp::Ordering::Greater => Some((0, key)),
+                    std::cmp::Ordering::Equal => None,
+                    std::cmp::Ordering::Less => Some((1, key)),
+                }
+            }
+        }
+    }
+}
+
 
 
 #[macro_export]
 macro_rules! def_node {
     ($node:ident, $val_type:ty; $($elem:tt)* ) => {
         define_node! { $node, $val_type | | $($elem)* }
-        impl_node_elem! { $node, $val_type | | $($elem)* }
+        impl_node_elem! { $node, $val_type | off | | $($elem)* }
         impl_node_trait! { $node, $val_type, $($elem)* }
         impl_rev2_trait! { $node, $val_type | off | off | $($elem)* }
         impl_size_trait! { $node, $val_type, $($elem)* }
         impl_height_trait! { $node, $val_type, $($elem)* }
         impl_fold_trait! { $node, $val_type, $($elem)* }
+    };
+    ($node:ident, key: $key_type:ty, $val_type:ty; $($elem:tt)* ) => {
+        define_node! { $node, $val_type | key: $key_type, | $($elem)* }
+        impl_node_elem! { $node, $val_type | $key_type | | $($elem)* }
+        impl_node_trait! { $node, $val_type, $($elem)* }
+        impl_rev2_trait! { $node, $val_type | off | off | $($elem)* }
+        impl_size_trait! { $node, $val_type, $($elem)* }
+        impl_height_trait! { $node, $val_type, $($elem)* }
+        impl_fold_trait! { $node, $val_type, $($elem)* }
+        impl_key_search! { $node, $key_type }
     };
 }
 
@@ -227,6 +271,7 @@ mod node_macro_test {
 
     struct M(usize);
     def_node! { NodeTest, M; size, rev, }
+    def_node! { NodeTest2, key: usize, M; size, rev, }
     
     #[test]
     fn node_macro_test() {
@@ -237,5 +282,8 @@ mod node_macro_test {
         assert_eq!(n.val.0, 15);
         assert_eq!(n.size, 1);
         assert_eq!(n.rev, false);
+
+        let n2 = NodeTest2::new(2, M(1333));
+        assert_eq!(n2.key_search(&3).unwrap().0, 1);
     }
 }
