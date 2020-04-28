@@ -3,10 +3,10 @@ use crate::algebra::*;
 
 use std::cmp::Ordering::Greater;
 
-pub trait AVLArrayNode: Node + SizeNode + HeightNode {}
-impl<N: Node + SizeNode + HeightNode> AVLArrayNode for N {}
+pub trait AVLNode: Node + HeightNode {}
+impl<N: Node + HeightNode> AVLNode for N {}
 
-fn rotate<N: AVLArrayNode>(mut x: Box<N>, dir: usize) -> Box<N> {
+fn rotate<N: AVLNode>(mut x: Box<N>, dir: usize) -> Box<N> {
     let mut y = x.replace(dir ^ 1, Link::None).unwrap();
     y.push();
     x.replace(dir ^ 1, y.replace(dir, Link::None));
@@ -16,7 +16,7 @@ fn rotate<N: AVLArrayNode>(mut x: Box<N>, dir: usize) -> Box<N> {
     y
 }
 
-fn balance<N: AVLArrayNode>(mut x: Box<N>) -> Box<N> {
+fn balance<N: AVLNode>(mut x: Box<N>) -> Box<N> {
     x.fix();
     if x.child(0).height() - x.child(1).height() == 2 {
         let mut y = x.replace(0, Link::None).unwrap();
@@ -41,7 +41,7 @@ fn balance<N: AVLArrayNode>(mut x: Box<N>) -> Box<N> {
     else { x }
 }
 
-fn deepest_node<N: AVLArrayNode>(mut x: Box<N>, dir: usize) -> (Link<N>, Box<N>) {
+fn deepest_node<N: AVLNode>(mut x: Box<N>, dir: usize) -> (Link<N>, Box<N>) {
     let mut par = Link::Dummy;
     x.push();
     while let Link::Some(ch) = x.replace(dir, Link::None) {
@@ -61,7 +61,7 @@ fn deepest_node<N: AVLArrayNode>(mut x: Box<N>, dir: usize) -> (Link<N>, Box<N>)
     (x, dn)
 }
 
-fn merge_dir<N: AVLArrayNode>(mut l: Link<N>, mut root: Box<N>, r: Link<N>, dir: usize) -> Link<N> {
+fn merge_dir<N: AVLNode>(mut l: Link<N>, mut root: Box<N>, r: Link<N>, dir: usize) -> Link<N> {
     let mut par = Link::Dummy;
     while let Link::Some(mut ll) = l {
         ll.push();
@@ -81,7 +81,7 @@ fn merge_dir<N: AVLArrayNode>(mut l: Link<N>, mut root: Box<N>, r: Link<N>, dir:
     l
 }
 
-fn merge<N: AVLArrayNode>(l: Link<N>, r: Link<N>) -> Link<N> {
+fn merge<N: AVLNode>(l: Link<N>, r: Link<N>) -> Link<N> {
     match l {
         Link::Some(l) => {
             match r {
@@ -104,66 +104,63 @@ fn merge<N: AVLArrayNode>(l: Link<N>, r: Link<N>) -> Link<N> {
     }
 }
 
-fn split<N: AVLArrayNode>(mut x: Box<N>, mut pos: usize) -> (Link<N>, Link<N>) {
-    if pos == x.size() { (Link::Some(x), Link::None) }
-    else {
-        let mut par = Link::Dummy;
-        x.push();
-        while x.child(0).size() != pos {
-            let ch = if pos < x.child(0).size() {
-                x.replace(0, par).unwrap()
-            }
-            else {
-                pos -= x.child(0).size() + 1;
-                x.replace(1, par).unwrap()
-            };
-            par = Link::Some(x);
-            x = ch;
-            x.push();
-        }
-        let mut l = x.replace(0, Link::None);
-        let r = x.replace(1, Link::None);
-        let mut r = merge_dir(r, x, Link::None, 0);
-        while let Link::Some(mut p) = par {
-            if p.height() < p.child(0).height() {
-                par = p.replace(0, Link::None);
-                r = merge_dir(p.replace(1, Link::None), p, r, 0);
-            }
-            else {
-                par = p.replace(1, Link::None);
-                l = merge_dir(p.replace(0, Link::None), p, l, 1);
-            }
-        }
-        (l, r)
-    }
-}
-
-fn at<N: AVLArrayNode>(mut x: &mut Box<N>, mut pos: usize) -> &N::Value {
-    x.push();
-    while pos != x.child(0).size() {
-        x = if pos < x.child(0).size() {
-            x.child_mut(0).as_mut().unwrap()
-        }
-        else {
-            pos -= x.child(0).size() + 1;
-            x.child_mut(1).as_mut().unwrap()
-        };
-        x.push();
-    }
-    x.value()
-}
-
-fn set<N: AVLArrayNode>(mut x: Box<N>, mut pos: usize, val: N::Value) -> Box<N> {
+fn split<K, N: AVLNode + KeySearch<K>>(mut x: Box<N>, mut pos: K) -> (Link<N>, Link<N>) {
     let mut par = Link::Dummy;
     x.push();
-    while x.child(0).size() != pos {
-        let ch = if pos < x.child(0).size() {
-            x.replace(0, par).unwrap()
+
+    let mut xl_flag = false;
+    while let Some((dir, np)) = x.key_search(pos) {
+        pos = np;
+        let ch = match x.replace(dir, Link::None) {
+            Link::Some(ch) => ch,
+            _ => {
+                xl_flag = true;
+                break;
+            }
+        };
+        x.replace(dir, par);
+        par = Link::Some(x);
+        x = ch;
+        x.push();
+    }
+    let (mut l, mut r) = if xl_flag {
+        (Link::Some(x), Link::None)
+    }
+    else {
+        (x.replace(0, Link::None), merge_dir(x.replace(1, Link::None), x, Link::None, 0))
+    };
+    while let Link::Some(mut p) = par {
+        if p.height() < p.child(0).height() {
+            par = p.replace(0, Link::None);
+            r = merge_dir(p.replace(1, Link::None), p, r, 0);
         }
         else {
-            pos -= x.child(0).size() + 1;
-            x.replace(1, par).unwrap()
+            par = p.replace(1, Link::None);
+            l = merge_dir(p.replace(0, Link::None), p, l, 1);
+        }
+    }
+    (l, r)
+}
+
+fn at<K, N: AVLNode + KeySearch<K>>(mut x: &mut Box<N>, mut pos: K) -> Option<&N::Value> {
+    x.push();
+    while let Some((dir, np)) = x.key_search(pos) {
+        pos = np;
+        x = match x.child_mut(dir).as_mut() {
+            Some(x) => x,
+            None => return None,
         };
+        x.push();
+    }
+    Some(x.value())
+}
+
+fn set<K, N: AVLNode + KeySearch<K>>(mut x: Box<N>, mut pos: K, val: N::Value) -> Box<N> {
+    let mut par = Link::Dummy;
+    x.push();
+    while let Some((dir, np)) = x.key_search(pos) {
+        pos = np;
+        let ch = x.replace(dir, par).unwrap();
         par = Link::Some(x);
         x = ch;
         x.push();
@@ -183,42 +180,48 @@ fn set<N: AVLArrayNode>(mut x: Box<N>, mut pos: usize, val: N::Value) -> Box<N> 
     x
 }
 
-pub struct AVLTreeArray<N: AVLArrayNode> {
+pub struct AVLTree<N: AVLNode> {
     root: Link<N>,
 }
 
-impl<N: AVLArrayNode> AVLTreeArray<N> {
+impl<N: AVLNode> AVLTree<N> {
     pub fn empty() -> Self {
-        AVLTreeArray { root: Link::None, }
+        AVLTree { root: Link::None, }
     }
     pub fn new(mut node: N) -> Self {
         node.fix();
-        AVLTreeArray { root: Link::Some(Box::new(node)) }
+        AVLTree { root: Link::Some(Box::new(node)) }
     }
     pub fn merge(self, right: Self) -> Self {
-        AVLTreeArray { root: merge(self.root, right.root) }
+        AVLTree { root: merge(self.root, right.root) }
     }
-    pub fn split(self, pos: usize) -> (Self, Self) {
+    pub fn split<K>(self, pos: K) -> (Self, Self)
+    where N: KeySearch<K> {
         match self.root {
             Link::Some(root) => {
                 let (l, r) = split(root, pos);
-                (AVLTreeArray { root: l }, AVLTreeArray { root: r })
+                (AVLTree { root: l }, AVLTree { root: r })
             }
             _ => (Self::empty(), Self::empty())
         }
     }
-    pub fn at(&mut self, pos: usize) -> &N::Value {
+    pub fn at<K>(&mut self, pos: K) -> Option<&N::Value>
+    where N: KeySearch<K> {
         at(self.root.as_mut().unwrap(), pos)
     }
-    pub fn set(&mut self, pos: usize, val: N::Value) {
+    pub fn set<K>(&mut self, pos: K, val: N::Value)
+    where N: KeySearch<K> {
         self.root = Link::Some(set(self.root.take().unwrap(), pos, val));
     }
+}
+
+impl<N: AVLNode + SizeNode> AVLTree<N> {
     pub fn size(&self) -> usize {
         self.root.size()
     }
 }
 
-impl<N: AVLArrayNode + ReversibleNode> AVLTreeArray<N> {
+impl<N: AVLNode + ReversibleNode> AVLTree<N> {
     pub fn reverse(&mut self) {
         if let Link::Some(ref mut r) = self.root {
             r.reverse()
@@ -226,7 +229,7 @@ impl<N: AVLArrayNode + ReversibleNode> AVLTreeArray<N> {
     }
 }
 
-impl<N: AVLArrayNode + FoldNode> AVLTreeArray<N> where <N as Node>::Value: Monoid {
+impl<N: AVLNode + FoldNode> AVLTree<N> where <N as Node>::Value: Monoid {
     pub fn fold(&self) -> N::Value {
         match self.root {
             Link::Some(ref node) => node.fold(),
@@ -239,29 +242,29 @@ impl<N: AVLArrayNode + FoldNode> AVLTreeArray<N> where <N as Node>::Value: Monoi
 #[cfg(test)]
 mod avlarray_normal_test {
     use crate::data_structures::node_traits::*;
-    use crate::data_structures::avl_tree::avl_tree_array::AVLTreeArray;
+    use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
 
     struct M(usize);
     def_node! { NodeTest, M; size, height, }
     
     #[test]
     fn node_macro_test() {
-        let mut arr = AVLTreeArray::empty();
+        let mut arr = AVLTree::empty();
         for i in 0..10 {
-            arr = arr.merge(AVLTreeArray::new(NodeTest::new(M(i))));
+            arr = arr.merge(AVLTree::new(NodeTest::new(M(i))));
         }
         for i in 0..10 {
-            assert_eq!(arr.at(i).0, i);
+            assert_eq!(arr.at(Position(i)).unwrap().0, i);
         }
 
-        let (mut l, mut r) = arr.split(4);
+        let (mut l, mut r) = arr.split(Position(4));
         assert_eq!(l.size(), 4);
         assert_eq!(r.size(), 6);
         for i in 0..4 {
-            assert_eq!(l.at(i).0, i);
+            assert_eq!(l.at(Position(i)).unwrap().0, i);
         }
         for i in 0..6 {
-            assert_eq!(r.at(i).0, i + 4);
+            assert_eq!(r.at(Position(i)).unwrap().0, i + 4);
         }
     }
 }
@@ -269,25 +272,25 @@ mod avlarray_normal_test {
 #[cfg(test)]
 mod avlarray_reverse_test {
     use crate::data_structures::node_traits::*;
-    use crate::data_structures::avl_tree::avl_tree_array::AVLTreeArray;
+    use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
 
     struct M(usize);
     def_node! { NodeTest, M; size, height, rev, }
     
     #[test]
     fn node_macro_test() {
-        let mut arr = AVLTreeArray::empty();
+        let mut arr = AVLTree::empty();
         for i in 0..10 {
-            arr = arr.merge(AVLTreeArray::new(NodeTest::new(M(i))));
+            arr = arr.merge(AVLTree::new(NodeTest::new(M(i))));
         }
         for i in 0..10 {
-            assert_eq!(arr.at(i).0, i);
+            assert_eq!(arr.at(Position(i)).unwrap().0, i);
         }
 
         arr.reverse();
 
         for i in 0..10 {
-            assert_eq!(arr.at(i).0, 9 - i);
+            assert_eq!(arr.at(Position(i)).unwrap().0, 9 - i);
         }
     }
 }
@@ -295,7 +298,7 @@ mod avlarray_reverse_test {
 #[cfg(test)]
 mod avlarray_fold_test {
     use crate::data_structures::node_traits::*;
-    use crate::data_structures::avl_tree::avl_tree_array::AVLTreeArray;
+    use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
     use crate::algebra::*;
 
     #[derive(Clone)]
@@ -313,16 +316,17 @@ mod avlarray_fold_test {
     
     #[test]
     fn node_macro_test() {
-        let mut arr = AVLTreeArray::empty();
+        let mut arr = AVLTree::empty();
         for i in 0..10 {
-            arr = arr.merge(AVLTreeArray::new(NodeTest::new(Am(i))));
+            arr = arr.merge(AVLTree::new(NodeTest::new(Am(i))));
         }
         for i in 0..10 {
-            assert_eq!(arr.at(i).0, i);
+            assert_eq!(arr.at(Position(i)).unwrap().0, i);
         }
 
+        let (arr, _) = arr.split(Position(10));
         assert_eq!(arr.fold().0, (0..10).sum());
-        let (l, r) = arr.split(4);
+        let (l, r) = arr.split(Position(4));
         assert_eq!(l.size(), 4);
         assert_eq!(r.size(), 6);
         assert_eq!(l.fold().0, (0..4).sum());
