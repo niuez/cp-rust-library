@@ -1,6 +1,32 @@
 use crate::algebra::*;
 
-pub type Link<N> = Option<Box<N>>;
+pub enum Link<N> {
+    Some(Box<N>),
+    None,
+    Dummy,
+}
+
+impl<N> Link<N> {
+    pub fn unwrap(self) -> Box<N> {
+        if let Link::Some(n) = self { n }
+        else { unreachable!(); }
+    }
+    pub fn take(&mut self) -> Self {
+        std::mem::replace(self, Link::None)
+    }
+    pub fn as_ref(&self) -> Option<&Box<N>> {
+        match *self {
+            Link::Some(ref n) => Some(n),
+            _ => None,
+        }
+    }
+    pub fn as_mut(&mut self) -> Option<&mut Box<N>> {
+        match *self {
+            Link::Some(ref mut n) => Some(n),
+            _ => None,
+        }
+    }
+}
 
 pub trait Node: Sized {
     type Value;
@@ -26,8 +52,8 @@ pub trait FoldNode where Self: Node, <Self as Node>::Value: Monoid {
 impl<N> SizeNode for Link<N> where N: SizeNode {
     fn size(&self) -> usize {
         match *self {
-            Some(ref node) => node.size(),
-            None => 0,
+            Link::Some(ref node) => node.size(),
+            _ => 0,
         }
     }
 }
@@ -35,8 +61,9 @@ impl<N> SizeNode for Link<N> where N: SizeNode {
 impl<N> HeightNode for Link<N> where N: HeightNode {
     fn height(&self) -> isize {
         match *self {
-            Some(ref node) => node.height(),
-            None => 0,
+            Link::Some(ref node) => node.height(),
+            Link::None => 0,
+            Link::Dummy => std::isize::MAX,
         }
     }
 }

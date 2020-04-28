@@ -36,7 +36,7 @@ macro_rules! impl_node_new {
             fn new(val: $val_type) -> Self {
                 Self {
                     val: val,
-                    child: [None, None],
+                    child: [Link::None, Link::None],
                     $($e: $v),*
                 }
             }
@@ -78,7 +78,6 @@ macro_rules! impl_node_trait {
             fn child_mut(&mut self, dir: usize) -> &mut Link<Self> { &mut self.child[dir] } 
             fn replace(&mut self, dir: usize, node: Link<Self>) -> Link<Self> {
                 let nn = std::mem::replace(&mut self.child[dir], node);
-                self.fix();
                 nn
             }
             fn value(&self) -> &Self::Value { &self.val }
@@ -231,7 +230,7 @@ mod node_macro_test {
     
     #[test]
     fn node_macro_test() {
-        let n = NodeTest { val: M(91), child: [None, None], size: 10, rev: false };
+        let n = NodeTest { val: M(91), child: [Link::None, Link::None], size: 10, rev: false };
         assert_eq!(n.val.0, 91);
         assert_eq!(n.size, 10);
         let n = NodeTest::new(M(15));
