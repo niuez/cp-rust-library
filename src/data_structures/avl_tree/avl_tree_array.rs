@@ -108,13 +108,13 @@ fn split<K, N: AVLNode + KeySearch<K>>(mut x: Box<N>, mut pos: K) -> (Link<N>, L
     let mut par = Link::Dummy;
     x.push();
 
-    let mut xl_flag = false;
+    let mut xl_flag = None;
     while let Some((dir, np)) = x.key_search(pos) {
         pos = np;
         let ch = match x.replace(dir, Link::None) {
             Link::Some(ch) => ch,
             _ => {
-                xl_flag = true;
+                xl_flag = Some(dir);
                 break;
             }
         };
@@ -123,11 +123,10 @@ fn split<K, N: AVLNode + KeySearch<K>>(mut x: Box<N>, mut pos: K) -> (Link<N>, L
         x = ch;
         x.push();
     }
-    let (mut l, mut r) = if xl_flag {
-        (Link::Some(x), Link::None)
-    }
-    else {
-        (x.replace(0, Link::None), merge_dir(x.replace(1, Link::None), x, Link::None, 0))
+    let (mut l, mut r) = match xl_flag {
+        Some(0) => (Link::None, Link::Some(x)),
+        Some(1) => (Link::Some(x), Link::None),
+        _ => (x.replace(0, Link::None), merge_dir(x.replace(1, Link::None), x, Link::None, 0)), 
     };
     while let Link::Some(mut p) = par {
         if p.height() < p.child(0).height() {
@@ -327,6 +326,46 @@ mod avlarray_fold_test {
         let (arr, _) = arr.split(Position(10));
         assert_eq!(arr.fold().0, (0..10).sum());
         let (l, r) = arr.split(Position(4));
+        assert_eq!(l.size(), 4);
+        assert_eq!(r.size(), 6);
+        assert_eq!(l.fold().0, (0..4).sum());
+        assert_eq!(r.fold().0, (4..10).sum());
+    }
+}
+
+
+#[cfg(test)]
+mod avlmap_fold_test {
+    use crate::data_structures::node_traits::*;
+    use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
+    use crate::algebra::*;
+
+    #[derive(Clone)]
+    struct Am(usize);
+
+    impl Magma for Am {
+        fn op(&self, right: &Self) -> Self { Am(self.0 + right.0) }
+    }
+    impl Associative for Am {}
+
+    impl Unital for Am {
+        fn identity() -> Self { Am(0) }
+    }
+    def_node! { NodeTest, key: usize, Am; size, height, fold, }
+    
+    #[test]
+    fn node_macro_test() {
+        let mut arr = AVLTree::empty();
+        for i in 0..10 {
+            arr = arr.merge(AVLTree::new(NodeTest::new(i * 2, Am(i))));
+        }
+        for i in 0..10 {
+            assert_eq!(arr.at(&(i * 2)).unwrap().0, i);
+        }
+
+        let (arr, _) = arr.split(&20);
+        assert_eq!(arr.fold().0, (0..10).sum());
+        let (l, r) = arr.split(&7);
         assert_eq!(l.size(), 4);
         assert_eq!(r.size(), 6);
         assert_eq!(l.fold().0, (0..4).sum());
