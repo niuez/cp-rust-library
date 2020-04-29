@@ -1,4 +1,4 @@
-use crate::data_structures::node_traits::*;
+use crate::data_structures::avl_tree::node_traits::*;
 use crate::algebra::*;
 
 use std::cmp::Ordering::Greater;
@@ -240,7 +240,7 @@ impl<N: AVLNode + FoldNode> AVLTree<N> where <N as Node>::Value: Monoid {
 
 #[cfg(test)]
 mod avlarray_normal_test {
-    use crate::data_structures::node_traits::*;
+    use crate::data_structures::avl_tree::node_traits::*;
     use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
 
     struct M(usize);
@@ -270,7 +270,7 @@ mod avlarray_normal_test {
 
 #[cfg(test)]
 mod avlarray_reverse_test {
-    use crate::data_structures::node_traits::*;
+    use crate::data_structures::avl_tree::node_traits::*;
     use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
 
     struct M(usize);
@@ -296,7 +296,7 @@ mod avlarray_reverse_test {
 
 #[cfg(test)]
 mod avlarray_fold_test {
-    use crate::data_structures::node_traits::*;
+    use crate::data_structures::avl_tree::node_traits::*;
     use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
     use crate::algebra::*;
 
@@ -336,7 +336,7 @@ mod avlarray_fold_test {
 
 #[cfg(test)]
 mod avlmap_fold_test {
-    use crate::data_structures::node_traits::*;
+    use crate::data_structures::avl_tree::node_traits::*;
     use crate::data_structures::avl_tree::avl_tree_array::AVLTree;
     use crate::algebra::*;
 
