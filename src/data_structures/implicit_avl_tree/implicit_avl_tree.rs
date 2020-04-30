@@ -1,15 +1,15 @@
 use crate::data_structures::implicit_avl_tree::node_traits::*;
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{ RefCell, Ref };
 
 pub trait AVLNode: Node + HeightNode {}
 impl<N: Node + HeightNode> AVLNode for N {}
 
 
 fn rotate<N: AVLNode>(x: &Link<N>, dir: usize) {
-    let p_dir = x.borrow().parent_dir();
-    let n = x.borrow_mut()
-             .child_mut(dir ^ 1)
+    let p_dir = Child::Node(x.clone()).parent_dir();
+    let n = x.borrow()
+             .child(dir ^ 1)
              .unwrap_ref_node()
              .borrow_mut()
              .replace(dir, Child::Node(x.clone()));
@@ -29,18 +29,17 @@ fn rotate<N: AVLNode>(x: &Link<N>, dir: usize) {
 
 fn balance<N: AVLNode>(x: &Link<N>) {
     x.borrow_mut().fix();
-    match x.borrow().child(0).height() - x.borrow().child(1).height() {
+    let diff = x.borrow().child(0).height() - x.borrow().child(1).height();
+    match diff {
         2 => {
-            let xx = x.borrow();
-            let y = xx.child(0).unwrap_ref_node();
+            let y = x.clone().borrow().child(0).clone().unwrap_node();
             if y.borrow().child(0).height() - y.borrow().child(1).height() == -1 {
                 rotate(&y, 0);
             }
             rotate(x, 1);
         }
         -2 => {
-            let xx = x.borrow();
-            let y = xx.child(1).unwrap_ref_node();
+            let y = x.clone().borrow().child(1).clone().unwrap_node();
             if y.borrow().child(0).height() - y.borrow().child(1).height() == 1 {
                 rotate(&y, 1);
             }
@@ -50,15 +49,24 @@ fn balance<N: AVLNode>(x: &Link<N>) {
     }
 }
 
-fn merge_dir<N: AVLNode>(mut l: Child<N>, root: Link<N>, r: Child<N>, dir: usize) -> Link<N> {
+fn merge_dir<N: AVLNode>(mut l: Child<N>, root: Option<Link<N>>, r: Child<N>, dir: usize) -> Link<N> {
     while l.height() - r.height() > 1 {
         let ll = l.unwrap_node();
         ll.borrow_mut().push();
         l = ll.borrow().child(dir).clone();
     }
     let x = l.replace_parent(None);
-    root.borrow_mut().replace(dir ^ 1, l);
-    root.borrow_mut().replace(dir, r);
+    let root = match root {
+        None if dir == 1 => Rc::new(RefCell::new(N::new(l.clone(), r.clone()))),
+        None => Rc::new(RefCell::new(N::new(r.clone(), l.clone()))),
+        Some(root) => {
+            root.borrow_mut().replace(dir ^ 1, l.clone());
+            root.borrow_mut().replace(dir, r.clone());
+            root
+        } 
+    };
+    l.replace_parent(Some(root.clone()));
+    r.replace_parent(Some(root.clone()));
     root.borrow_mut().fix();
     root.borrow_mut().replace_parent(x.clone());
     if let Some(x) = x { x.borrow_mut().replace(dir, Child::Node(root.clone())); }
@@ -73,10 +81,10 @@ fn merge_dir<N: AVLNode>(mut l: Child<N>, root: Link<N>, r: Child<N>, dir: usize
 fn merge<N: AVLNode>(l: Option<Child<N>>, r: Option<Child<N>>) -> Option<Child<N>> {
     match (l, r) {
         (Some(l), Some(r)) if l.height() >= r.height() => {
-            Some(Child::Node(merge_dir(l, Rc::new(RefCell::new(N::new())), r, 1)))
+            Some(Child::Node(merge_dir(l, None, r, 1)))
         }
         (Some(l), Some(r)) => {
-            Some(Child::Node(merge_dir(r, Rc::new(RefCell::new(N::new())), l, 0)))
+            Some(Child::Node(merge_dir(r, None, l, 0)))
         }
         (l, None) => {
             l
@@ -85,65 +93,6 @@ fn merge<N: AVLNode>(l: Option<Child<N>>, r: Option<Child<N>>) -> Option<Child<N
             r
         }
     }
-}
-
-fn split2<K, N: AVLNode + KeySearch<K>>(mut x: Child<N>, mut pos: K) -> (Option<Child<N>>, Option<Child<N>>)
-where N::L: KeySearch<K>
-{
-    let mut pdir = None;
-    let mut sch_res = None;
-    while let Some((Some((dir, np)), xx)) = match x.clone() {
-        Child::Node(xx) => Some(({ xx.clone().borrow().key_search(pos) }, xx)),
-        Child::Leaf(xx) => {
-            sch_res = xx.borrow().key_search(pos);
-            None
-        }
-    } {
-        pos = np;
-        pdir = Some(dir);
-        x = xx.borrow().child(dir).clone();
-    }
-    let mut p = x.replace_parent(None);
-    let (mut l, mut r) = match x {
-        Child::Node(x) => {
-            let l = x.borrow_mut().child(0).clone();
-            l.replace_parent(None);
-            let r = x.borrow_mut().child(1).clone();
-            r.replace_parent(None);
-            (Some(l), Some(r))
-        }
-        Child::Leaf(x) => {
-            match sch_res {
-                Some((1, _)) => {
-                    (Some(Child::Leaf(x)), None)
-                }
-                _ => {
-                    (None, Some(Child::Leaf(x)))
-                }
-            }
-        }
-    };
-
-    while let (Some(dir), Some(x)) = (pdir, p) {
-        pdir = x.borrow().parent_dir();
-        p = x.borrow_mut().replace_parent(None);
-        match dir {
-            0 => {
-                r = match r {
-
-                    Some(r) => Some(Child::Node(merge_dir(x.clone().borrow().child(1).clone(), x, r, 0))),
-                    None => Some(x.borrow().child(1).clone()),
-                };
-            }
-            _ => {
-                l = match l {
-                    Some(l) => Some(Child::Node(merge_dir(x.clone().borrow().child(0).clone(), x, l, 1))),
-                    None => Some(x.borrow().child(0).clone()),
-                };
-            }
-        }
-    }
-    (l, r)
 }
 
 fn find_root<N: AVLNode>(x: Link<N::L>) -> (Child<N>, usize) {
@@ -175,24 +124,24 @@ fn fixup<N: AVLNode>(x: Link<N::L>) {
 
 
 fn split<N: AVLNode>(x: Link<N::L>) -> (Option<Child<N>>, Option<Child<N>>) {
-    let mut pdir = x.borrow().parent_dir();
+    let mut pdir = Child::<N>::Leaf(x.clone()).parent_dir();
     let mut p = x.borrow_mut().replace_parent(None);
     let mut l = None;
     let mut r = Some(Child::Leaf(x));
     while let (Some(dir), Some(x)) = (pdir, p) {
-        pdir = x.borrow().parent_dir();
+        pdir = Child::Node(x.clone()).parent_dir();
         p = x.borrow_mut().replace_parent(None);
         match dir {
             0 => {
                 r = match r {
 
-                    Some(r) => Some(Child::Node(merge_dir(x.clone().borrow().child(1).clone(), x, r, 0))),
+                    Some(r) => Some(Child::Node(merge_dir(x.clone().borrow().child(1).clone(), Some(x), r, 0))),
                     None => Some(x.borrow().child(1).clone()),
                 };
             }
             _ => {
                 l = match l {
-                    Some(l) => Some(Child::Node(merge_dir(x.clone().borrow().child(0).clone(), x, l, 1))),
+                    Some(l) => Some(Child::Node(merge_dir(x.clone().borrow().child(0).clone(), Some(x), l, 1))),
                     None => Some(x.borrow().child(0).clone()),
                 };
             }
@@ -267,11 +216,58 @@ impl<N: AVLNode> ImplicitAVLTree<N> {
     }
 }
 
+pub struct ImplicitAVLValue<'a, N: AVLNode> {
+    n: Ref<'a, N::L>,
+}
+
+impl<'a, N: AVLNode> std::ops::Deref for ImplicitAVLValue<'a, N> {
+    type Target = <N::L as Leaf>::Value;
+    fn deref(&self) -> &Self::Target {
+        self.n.value()
+    }
+}
+
 impl<N: AVLNode> ImplicitAVLIterator<N> {
+    pub fn val(&self) -> ImplicitAVLValue<'_, N> {
+        ImplicitAVLValue { n: self.node.borrow() }
+    }
     pub fn set<K>(&self, val: <<N as Node>::L as Leaf>::Value) {
         let (r, dir) = find_root::<N>(self.node.clone());
         pushdown(r, dir);
         *self.node.borrow_mut().value_mut() = val;
         fixup::<N>(self.node.clone());
+    }
+}
+
+#[cfg(test)]
+mod avlarray_normal_test {
+    use crate::data_structures::implicit_avl_tree::node_traits::*;
+    use crate::data_structures::implicit_avl_tree::implicit_avl_tree::ImplicitAVLTree;
+
+    struct M(usize);
+    def_implicit_node! { NodeTest, LeafTest, M; size, height, }
+    
+    #[test]
+    fn node_macro_test() {
+        let mut arr = ImplicitAVLTree::<NodeTest>::empty();
+        for i in 0..10 {
+            arr = arr.merge(ImplicitAVLTree::new(LeafTest::new(M(i))).0);
+            for j in 0..(i + 1) {
+                assert_eq!(arr.at(Position(j)).unwrap().val().0, j);
+            }
+        }
+        for i in 0..10 {
+            assert_eq!(arr.at(Position(i)).unwrap().val().0, i);
+        }
+
+        /* let (mut l, mut r) = arr.split(Position(4));
+        assert_eq!(l.size(), 4);
+        assert_eq!(r.size(), 6);
+        for i in 0..4 {
+            assert_eq!(l.at(Position(i)).unwrap().0, i);
+        }
+        for i in 0..6 {
+            assert_eq!(r.at(Position(i)).unwrap().0, i + 4);
+        } */
     }
 }

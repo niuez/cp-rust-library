@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::algebra::*;
 
 #[derive(Clone, Copy)]
 pub struct Position(pub usize);
@@ -29,8 +30,24 @@ impl<N: Node> Child<N> {
     }
     pub fn parent_dir(&self) -> Option<usize> {
         match self {
-            Child::Node(ref n) => n.borrow_mut().parent_dir(),
-            Child::Leaf(ref l) => l.borrow_mut().parent_dir(),
+            Child::Node(ref n) => {
+                match n.borrow().parent() {
+                    Some(p) => match *p.borrow().child(0) {
+                        Child::Node(ref m) if Rc::ptr_eq(n, m) => Some(0),
+                        _ => Some(1),
+                    }
+                    _ => None,
+                }
+            }
+            Child::Leaf(ref l) => {
+                match l.borrow().parent() {
+                    Some(p) => match *p.borrow().child(0) {
+                        Child::Leaf(ref m) if Rc::ptr_eq(l, m) => Some(0),
+                        _ => Some(1),
+                    }
+                    _ => None,
+                }
+            }
         }
     }
     pub fn replace_parent(&self, node: Parent<N>) -> Parent<N> {
@@ -65,12 +82,11 @@ pub trait Vertex: Sized {
     type N: Node;
     fn parent(&self) -> &Parent<Self::N>;
     fn replace_parent(&mut self, node: Parent<Self::N>) -> Parent<Self::N>;
-    fn parent_dir(&self) -> Option<usize>;
 }
 
 pub trait Node: Vertex<N=Self> {
     type L: Vertex<N=Self> + Leaf;
-    fn new() -> Self;
+    fn new(l: Child<Self>, r: Child<Self>) -> Self;
     fn push(&mut self);
     fn fix(&mut self);
     fn child(&self, dir: usize) -> &Child<Self>;
@@ -81,7 +97,7 @@ pub trait Node: Vertex<N=Self> {
 pub trait Leaf: Vertex where <Self as Vertex>::N: Node<L=Self> {
     type Value;
     fn value(&self) -> &Self::Value;
-    fn value_mut(&self) -> &mut Self::Value;
+    fn value_mut(&mut self) -> &mut Self::Value;
 }
 
 pub trait KeySearch<K> {
@@ -93,6 +109,10 @@ pub trait ReversibleNode { fn reverse(&mut self); }
 pub trait SizeNode { fn size(&self) -> usize; }
 
 pub trait HeightNode { fn height(&self) -> isize; }
+
+pub trait FoldNode where Self: Vertex, <<Self::N as Node>::L as Leaf>::Value: Monoid {
+    fn fold(&self) -> <<Self::N as Node>::L as Leaf>::Value;
+}
 
 impl<N: Node + SizeNode> SizeNode for Child<N> {
     fn size(&self) -> usize {
@@ -111,12 +131,20 @@ impl<N: Node + HeightNode> HeightNode for Child<N> {
     }
 }
 
+impl<N: Node + FoldNode> Child<N> where <<N as Node>::L as Leaf>::Value: Monoid {
+    pub fn fold_child(&self) -> <<N as Node>::L as Leaf>::Value {
+        match *self {
+            Child::Leaf(ref l) => l.borrow().value().clone(),
+            Child::Node(ref n) => n.borrow().fold(),
+        }
+    }
+}
+
 impl<N> KeySearch<Position> for N where N: Node + SizeNode {
     fn key_search(&self, key: Position) -> Option<(usize, Position)> {
         match self.child(0).size().cmp(&key.0) {
             std::cmp::Ordering::Greater => Some((0, key)),
-            std::cmp::Ordering::Equal => None,
-            std::cmp::Ordering::Less => Some((1, Position(key.0 - self.child(0).size()))),
+            _ => Some((1, Position(key.0 - self.child(0).size()))),
         }
     }
 }
