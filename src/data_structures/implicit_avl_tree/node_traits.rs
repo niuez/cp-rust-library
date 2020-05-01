@@ -56,6 +56,27 @@ impl<N: Node> Child<N> {
             Child::Leaf(ref l) => l.borrow_mut().replace_parent(node),
         }
     }
+
+    pub fn debug(&self, s: &str) where N: HeightNode {
+        match self {
+            Child::Node(ref n) => {
+                println!("{}Node {:?} = {}", s, n.as_ptr(), n.borrow().height());
+                println!("{}p  = {}", s, match n.borrow().parent() {
+                    Some(ref p) => format!("{:?}", p.as_ptr()),
+                    None => format!("None"),
+                });
+                n.borrow().child(0).debug(&(s.to_string() + "  "));
+                n.borrow().child(1).debug(&(s.to_string() + "  "));
+            }
+            Child::Leaf(ref l) => {
+                println!("{}Leaf {:?}", s, l.as_ptr());
+                println!("{}p  = {}", s, match l.borrow().parent() {
+                    Some(ref p) => format!("{:?}", p.as_ptr()),
+                    None => format!("None"),
+                });
+            }
+        }
+    }
 }
 impl<N: Node> Clone for Child<N> {
     fn clone(&self) -> Self {

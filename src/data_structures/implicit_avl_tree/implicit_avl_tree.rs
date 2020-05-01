@@ -8,7 +8,8 @@ impl<N: Node + HeightNode> AVLNode for N {}
 
 fn rotate<N: AVLNode>(x: &Link<N>, dir: usize) {
     let p_dir = Child::Node(x.clone()).parent_dir();
-    let n = x.borrow()
+    let n = x
+             .borrow()
              .child(dir ^ 1)
              .unwrap_ref_node()
              .borrow_mut()
@@ -32,14 +33,14 @@ fn balance<N: AVLNode>(x: &Link<N>) {
     let diff = x.borrow().child(0).height() - x.borrow().child(1).height();
     match diff {
         2 => {
-            let y = x.clone().borrow().child(0).clone().unwrap_node();
+            let y = x.borrow().child(0).clone().unwrap_node();
             if y.borrow().child(0).height() - y.borrow().child(1).height() == -1 {
                 rotate(&y, 0);
             }
             rotate(x, 1);
         }
         -2 => {
-            let y = x.clone().borrow().child(1).clone().unwrap_node();
+            let y = x.borrow().child(1).clone().unwrap_node();
             if y.borrow().child(0).height() - y.borrow().child(1).height() == 1 {
                 rotate(&y, 1);
             }
@@ -53,7 +54,7 @@ fn merge_dir<N: AVLNode>(mut l: Child<N>, root: Option<Link<N>>, r: Child<N>, di
     while l.height() - r.height() > 1 {
         let ll = l.unwrap_node();
         ll.borrow_mut().push();
-        l = ll.borrow().child(dir).clone();
+        l = (*ll.borrow()).child(dir).clone();
     }
     let x = l.replace_parent(None);
     let root = match root {
@@ -71,9 +72,15 @@ fn merge_dir<N: AVLNode>(mut l: Child<N>, root: Option<Link<N>>, r: Child<N>, di
     root.borrow_mut().replace_parent(x.clone());
     if let Some(x) = x { x.borrow_mut().replace(dir, Child::Node(root.clone())); }
     let mut x = root;
-    while let Some(xx) = x.clone().borrow().parent().clone() {
-        x = xx;
-        balance(&x);
+    loop {
+        let xx = (*x.borrow()).parent().clone();
+        if let Some(xx) = xx {
+            balance(&xx);
+            x = xx;
+        }
+        else {
+            break;
+        }
     }
     x
 }
@@ -125,23 +132,31 @@ fn fixup<N: AVLNode>(x: Link<N::L>) {
 
 fn split<N: AVLNode>(x: Link<N::L>) -> (Option<Child<N>>, Option<Child<N>>) {
     let mut pdir = Child::<N>::Leaf(x.clone()).parent_dir();
-    let mut p = x.borrow_mut().replace_parent(None);
+    let mut p = (*x.borrow_mut()).replace_parent(None).clone();
     let mut l = None;
     let mut r = Some(Child::Leaf(x));
     while let (Some(dir), Some(x)) = (pdir, p) {
         pdir = Child::Node(x.clone()).parent_dir();
-        p = x.borrow_mut().replace_parent(None);
+        p = (*x.borrow_mut()).replace_parent(None).clone();
         match dir {
             0 => {
                 r = match r {
 
-                    Some(r) => Some(Child::Node(merge_dir(x.clone().borrow().child(1).clone(), Some(x), r, 0))),
+                    Some(r) => {
+                        let ll = x.borrow().child(1).clone();
+                        ll.replace_parent(None);
+                        Some(Child::Node(merge_dir(ll, Some(x), r, 0)))
+                    }
                     None => Some(x.borrow().child(1).clone()),
                 };
             }
             _ => {
                 l = match l {
-                    Some(l) => Some(Child::Node(merge_dir(x.clone().borrow().child(0).clone(), Some(x), l, 1))),
+                    Some(l) => {
+                        let rr = x.borrow().child(0).clone();
+                        rr.replace_parent(None);
+                        Some(Child::Node(merge_dir(rr, Some(x), l, 1)))
+                    }
                     None => Some(x.borrow().child(0).clone()),
                 };
             }
@@ -200,20 +215,38 @@ impl<N: AVLNode> ImplicitAVLTree<N> {
     pub fn merge(self, right: Self) -> Self {
         ImplicitAVLTree { root: merge(self.root, right.root) }
     }
-    pub fn split(self, iter: &ImplicitAVLIterator<N>) -> (Self, Self) {
-        match find_root::<N>(iter.node.clone()) {
-            (r, dir) if self.root == Some(r.clone()) => {
-                pushdown(r, dir);
-                let (l, r) = split::<N>(iter.node.clone());
-                (ImplicitAVLTree { root: l }, ImplicitAVLTree { root: r })
+    pub fn split(self, iter: &Option<ImplicitAVLIterator<N>>) -> (Self, Self) {
+        match iter {
+            Some(ref iter) => {
+                match find_root::<N>(iter.node.clone()) {
+                    (r, dir) if self.root == Some(r.clone()) => {
+                        pushdown(r, dir);
+                        let (l, r) = split::<N>(iter.node.clone());
+                        (ImplicitAVLTree { root: l }, ImplicitAVLTree { root: r })
+                    }
+                    _ => unreachable!("invalid iterator")
+                }
             }
-            _ => unreachable!("invalid iterator")
+            None => (self, ImplicitAVLTree { root: None })
         }
     }
     pub fn at<K>(&self, pos: K) -> Option<ImplicitAVLIterator<N>>
     where N: KeySearch<K>, N::L: KeySearch<K> {
         at(self.root.clone().unwrap(), pos).map(|n| ImplicitAVLIterator::<N> { node: n })
     }
+
+    pub fn debug(&self) where <N::L as Leaf>::Value: std::fmt::Debug {
+        match self.root {
+            Some(ref root) => root.debug(""),
+            None => println!("None"),
+        }
+    }
+}
+impl<N: AVLNode + SizeNode> ImplicitAVLTree<N> {
+    pub fn size(&self) -> usize  {
+        self.root.as_ref().map(|r| r.size()).unwrap_or(0)
+    }
+
 }
 
 pub struct ImplicitAVLValue<'a, N: AVLNode> {
@@ -240,34 +273,34 @@ impl<N: AVLNode> ImplicitAVLIterator<N> {
 }
 
 #[cfg(test)]
-mod avlarray_normal_test {
+mod implicitavl_normal_test {
     use crate::data_structures::implicit_avl_tree::node_traits::*;
     use crate::data_structures::implicit_avl_tree::implicit_avl_tree::ImplicitAVLTree;
 
-    struct M(usize);
-    def_implicit_node! { NodeTest, LeafTest, M; size, height, }
+    def_implicit_node! { NodeTest, LeafTest, usize; size, height, }
     
     #[test]
     fn node_macro_test() {
         let mut arr = ImplicitAVLTree::<NodeTest>::empty();
         for i in 0..10 {
-            arr = arr.merge(ImplicitAVLTree::new(LeafTest::new(M(i))).0);
+            println!("here {}", i);
+            arr = arr.merge(ImplicitAVLTree::new(LeafTest::new(i)).0);
             for j in 0..(i + 1) {
-                assert_eq!(arr.at(Position(j)).unwrap().val().0, j);
+                assert_eq!(arr.at(Position(j)).unwrap().val().clone(), j);
             }
         }
         for i in 0..10 {
-            assert_eq!(arr.at(Position(i)).unwrap().val().0, i);
+            assert_eq!(arr.at(Position(i)).unwrap().val().clone(), i);
         }
-
-        /* let (mut l, mut r) = arr.split(Position(4));
+        let iter = arr.at(Position(4));
+        let (l, r) = arr.split(&iter);
         assert_eq!(l.size(), 4);
         assert_eq!(r.size(), 6);
         for i in 0..4 {
-            assert_eq!(l.at(Position(i)).unwrap().0, i);
+            assert_eq!(l.at(Position(i)).unwrap().val().clone(), i);
         }
         for i in 0..6 {
-            assert_eq!(r.at(Position(i)).unwrap().0, i + 4);
-        } */
+            assert_eq!(r.at(Position(i)).unwrap().val().clone(), i + 4);
+        }
     }
 }
