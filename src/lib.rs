@@ -11,3 +11,5 @@ pub mod math;
 pub mod dp;
 
 pub mod binary_search;
+
+pub mod lp;
