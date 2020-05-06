@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub trait VanEmdeBoasTree {
     fn new() -> Self;
     fn universe_len() -> u64;
@@ -85,6 +87,111 @@ impl<T: VanEmdeBoasTree> VanEmdeBoasTree for VEBTreeNode<T> {
                 .lower_bound(i + 1)
                 .map_or(None, |l| {
                     self.cluster[l as usize].lower_bound(0).map(|x| x + l * T::universe_len())
+                })
+        }
+        else { None }
+    }
+}
+
+pub struct VEBTreeDynNode<T> {
+    summary: T,
+    cluster: Box<[Option<Box<T>>]>,
+}
+
+impl<T: VanEmdeBoasTree> VanEmdeBoasTree for VEBTreeDynNode<T> {
+    fn new() -> Self {
+        VEBTreeDynNode {
+            summary: T::new(),
+            cluster: (0..T::universe_len())
+                .map(|_| None)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        }
+    }
+    fn universe_len() -> u64 { T::universe_len().pow(2) }
+    fn insert(&mut self, x: u64) {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.summary.insert(i);
+        self.cluster[i as usize].get_or_insert_with(|| Box::new(T::new())).insert(x);
+    }
+    fn erase(&mut self, x: u64) {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.cluster[i as usize].as_mut().map(|c| c.erase(x));
+        if !self.cluster[i as usize].as_ref().map(|c| c.any()).unwrap_or(true) {
+            self.summary.erase(i);
+        }
+    }
+    fn find(&self, x: u64) -> bool {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.cluster[i as usize].as_ref().map(|c| c.find(x)).unwrap_or(false)
+    }
+    fn any(&self) -> bool {
+        self.summary.any()
+    }
+    fn lower_bound(&self, x: u64) -> Option<u64> {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        println!("{}, {}", i, x);
+        if self.summary.find(i) {
+            if let Some(ans) = self.cluster[i as usize].as_ref().map_or(None, |c| c.lower_bound(x)) {
+                return Some(ans + i * T::universe_len());
+            }
+        }
+        if i + 1 < T::universe_len() {
+            self.summary
+                .lower_bound(i + 1)
+                .map_or(None, |l| {
+                    self.cluster[l as usize].as_ref().unwrap().lower_bound(0).map(|x| x + l * T::universe_len())
+                })
+        }
+        else { None }
+    }
+}
+
+pub struct VEBTreeHashNode<T> {
+    summary: T,
+    cluster: HashMap<u64, T>,
+}
+
+impl<T: VanEmdeBoasTree> VanEmdeBoasTree for VEBTreeHashNode<T> {
+    fn new() -> Self {
+        VEBTreeHashNode {
+            summary: T::new(),
+            cluster: HashMap::new(),
+        }
+    }
+    fn universe_len() -> u64 { T::universe_len().pow(2) }
+    fn insert(&mut self, x: u64) {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.summary.insert(i);
+        self.cluster.entry(i).or_insert_with(|| T::new()).insert(x);
+    }
+    fn erase(&mut self, x: u64) {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.cluster.get_mut(&i).map(|c| c.erase(x));
+        if !self.cluster.get(&i).map(|c| c.any()).unwrap_or(true) {
+            self.summary.erase(i);
+        }
+    }
+    fn find(&self, x: u64) -> bool {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        self.cluster.get(&i).map(|c| c.find(x)).unwrap_or(false)
+    }
+    fn any(&self) -> bool {
+        self.summary.any()
+    }
+    fn lower_bound(&self, x: u64) -> Option<u64> {
+        let (i, x) = (x / T::universe_len(), x % T::universe_len());
+        println!("{}, {}", i, x);
+        if self.summary.find(i) {
+            if let Some(ans) = self.cluster.get(&i).map_or(None, |c| c.lower_bound(x)) {
+                return Some(ans + i * T::universe_len());
+            }
+        }
+        if i + 1 < T::universe_len() {
+            self.summary
+                .lower_bound(i + 1)
+                .map_or(None, |l| {
+                    self.cluster.get(&l).unwrap().lower_bound(0).map(|x| x + l * T::universe_len())
                 })
         }
         else { None }
