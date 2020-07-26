@@ -1,3 +1,6 @@
+use crate::algebra::*;
+use crate::data_structures::set::bitset::Bitset;
+
 pub struct LazySegmentTree<T: Monoid + Effect<E>, E: Monoid> {
     node: Box<[T]>,
     lazy: Box<[E]>,
@@ -154,7 +157,7 @@ mod rmq_ruq_test {
 
     #[test]
     fn rmq_ruq_test() {
-        let mut seg = LazySegmentTree::init(&vec![Mm::identity(); 3]);
+        let mut seg = LazySegmentTree::new(&vec![Mm::identity(); 3]);
         seg.update(0, 2, Uq(Some(1)));
         seg.update(1, 3, Uq(Some(3)));
         seg.update(2, 3, Uq(Some(2)));
