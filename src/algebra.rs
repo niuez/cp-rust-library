@@ -10,12 +10,12 @@ pub trait Unital: Magma {
 
 pub trait Monoid: Magma + Associative + Unital {}
 
-pub trait Pow: Magma {
-    fn pow(&self, p: usize) -> Self;
-}
-
 pub trait Reverse: Magma {
     fn reverse(&self) -> Self;
+}
+
+pub trait Pow: Magma {
+    fn pow(&self, n: usize) -> Self;
 }
 
 pub trait Inv: Magma {

@@ -17,7 +17,7 @@ impl Bitset {
         }
     }
 
-    pub fn get(&mut self, i: usize) -> bool {
+    pub fn get(&self, i: usize) -> bool {
         assert!(i < self.n);
         (self.b[i / 64] & (1u64 << (i & 63))) > 0
     }
