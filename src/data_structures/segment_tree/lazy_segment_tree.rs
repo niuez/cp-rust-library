@@ -143,9 +143,6 @@ mod rmq_ruq_test {
     impl Unital for Uq {
         fn identity() -> Self { Uq(None) }
     }
-    impl Pow for Uq {
-        fn pow(&self, _: usize) -> Self { self.clone() }
-    }
     impl Effect<Uq> for Mm {
         fn effect(&self, u: &Uq) -> Mm {
             match *u {

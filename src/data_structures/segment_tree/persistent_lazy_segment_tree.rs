@@ -128,9 +128,6 @@ mod persistent_lazy_segment_tree_test {
     impl Unital for Aq {
         fn identity() -> Self { Aq(0) }
     }
-    impl Pow for Aq {
-        fn pow(&self, p: usize) -> Self { Aq(self.0 * p) }
-    }
     impl Effect<Aq> for Sm {
         fn effect(&self, t: &Aq) -> Self {
             Sm(self.0 + t.0)
