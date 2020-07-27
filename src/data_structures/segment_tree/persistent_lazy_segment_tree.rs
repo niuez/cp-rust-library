@@ -5,16 +5,16 @@ use std::ops::Range;
 
 type Link<T, E> = Option<Rc<Node<T, E>>>;
 
-struct Node<T: Monoid + Effect<E>, E: Monoid + Pow> {
+struct Node<T: Monoid + Effect<E>, E: Monoid> {
     data: T,
     eff: E,
     left: Link<T, E>,
     right: Link<T, E>,
 }
 
-impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
+impl<T: Monoid + Effect<E>, E: Monoid> Node<T, E> {
     fn new(data: T) -> Self {
-        Node { data: data, eff: E::identity(), left: None, right: None }
+        Node { data, eff: E::identity(), left: None, right: None }
     }
     fn build(l: usize, r: usize, arr: &[T]) -> Self {
         if l + 1 >= r { Node::new(arr[l].clone()) }
@@ -25,8 +25,8 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
                 data: match left.as_ref() { Some(n) => n.data.clone(), None => T::identity() }
                       .op(& match right.as_ref() { Some(n) => n.data.clone(), None => T::identity() }),
                 eff: E::identity(),
-                left: left,
-                right: right,
+                left,
+                right,
             }
         }
     }
@@ -35,7 +35,7 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
         if a <= l && r <= b {
             let eff = fold_eff.op(&new_eff);
             Node {
-                data: self.data.effect(&eff.pow(r - l)),
+                data: self.data.effect(&eff),
                 eff: self.eff.op(&eff),
                 left: self.left.clone(),
                 right: self.right.clone(),
@@ -43,7 +43,7 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
         }
         else if r <= a || b <= l {
             Node {
-                data: self.data.effect(&fold_eff.pow(r - l)),
+                data: self.data.effect(&fold_eff),
                 eff: self.eff.op(&fold_eff),
                 left: self.left.clone(),
                 right: self.right.clone(),
@@ -56,14 +56,14 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
                 data: match left.as_ref() { Some(n) => n.data.clone(), None => T::identity() }
                       .op(& match right.as_ref() { Some(n) => n.data.clone(), None => T::identity() }),
                 eff: E::identity(),
-                left: left,
-                right: right,
+                left,
+                right,
             }
         }
     }
 
     fn fold(&self, a: usize, b: usize, l: usize, r: usize, eff: E) -> T {
-        if a <= l && r <= b { self.data.effect(&eff.pow(r - l)) }
+        if a <= l && r <= b { self.data.effect(&eff) }
         else if r <= a || b <= l { T::identity() }
         else {
             match self.left.as_ref() { Some(n) => n.fold(a, b, l, (l + r) >> 1, self.eff.op(&eff)), None => T::identity() }
@@ -72,7 +72,7 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Node<T, E> {
     }
 }
 
-impl<T: Monoid + Effect<E>, E: Monoid + Pow> Drop for Node<T, E> {
+impl<T: Monoid + Effect<E>, E: Monoid> Drop for Node<T, E> {
     fn drop(&mut self) {
         if let Some(left) = self.left.take() {
             if let Ok(_) = Rc::try_unwrap(left) {}
@@ -84,11 +84,11 @@ impl<T: Monoid + Effect<E>, E: Monoid + Pow> Drop for Node<T, E> {
 }
 
 
-pub struct PersistentLazySegmentTree<T: Monoid + Effect<E>, E: Monoid + Pow> {
+pub struct PersistentLazySegmentTree<T: Monoid + Effect<E>, E: Monoid> {
     root: Node<T, E>,
     sz: usize,
 }
-impl<T: Monoid + Effect<E>, E: Monoid + Pow> PersistentLazySegmentTree<T, E> {
+impl<T: Monoid + Effect<E>, E: Monoid> PersistentLazySegmentTree<T, E> {
     pub fn new(arr: &[T]) -> Self {
         Self { root: Node::build(0, arr.len(), arr), sz: arr.len() }
     }
