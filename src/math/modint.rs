@@ -1,25 +1,30 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
 pub trait Mod: Sized {
-    fn new(a: u64) -> ModInt<Self> { ModInt::new(a) }
-    fn newi(a: i64) -> ModInt<Self> { ModInt::newi(a) }
-    fn m() -> u64;
+    fn m() -> u32;
+    fn m64() -> u64;
+    fn mi64() -> i64;
 }
 
 #[macro_export]
 macro_rules! const_mod {
     ($st: ident, $m: expr) => {
         struct $st {}
-        impl Mod for $st { fn m() -> u64 { $m } }
+        impl Mod for $st {
+            fn m() -> u32 { $m }
+            fn m64() -> u64 { $m as u64 }
+            fn mi64() -> i64 { $m as i64 }
+        }
     }
 }
 
-pub struct ModInt<M: Mod> { a: u64, _p: std::marker::PhantomData<M> }
+pub struct ModInt<M: Mod> { a: u32, _p: std::marker::PhantomData<M> }
 
 impl<M: Mod> ModInt<M> {
-    pub fn new(a: u64) -> Self { ModInt { a: a % M::m() as u64, _p: std::marker::PhantomData } }
-    pub fn newi(a: i64) -> Self { ModInt { a: (a + M::m() as i64) as u64 % M::m(), _p: std::marker::PhantomData } }
-    pub fn value(&self) -> u64 { self.a }
+    pub fn new(a: u32) -> Self { ModInt { a, _p: std::marker::PhantomData } }
+    pub fn newu64(a: u64) -> Self { ModInt { a: (a % M::m64()) as u32, _p: std::marker::PhantomData } }
+    pub fn newi64(a: i64) -> Self { ModInt { a: (((a % M::mi64()) + M::mi64()) % M::mi64()) as u32, _p: std::marker::PhantomData } }
+    pub fn value(&self) -> u32 { self.a }
     pub fn pow(&self, p: u64) -> Self {
         let mut exp = p;
         let mut now = *self;
@@ -31,12 +36,11 @@ impl<M: Mod> ModInt<M> {
         }
         ans
     }
-    pub fn inv(&self) -> Self { self.pow(M::m() - 2) }
+    pub fn inv(&self) -> Self { self.pow(M::m() as u64 - 2) }
 }
 
 impl<M: Mod> Clone for ModInt<M> { fn clone(&self) -> Self { ModInt::new(self.a) } }
 impl<M: Mod> Copy for ModInt<M> {}
-impl<M: Mod> From<i64> for ModInt<M> { fn from(a: i64) -> Self { ModInt::newi(a) } }
 
 impl<M: Mod> Add for ModInt<M> {
     type Output = Self;
@@ -56,7 +60,7 @@ impl<M: Mod> Sub for ModInt<M> {
 impl<M: Mod> Mul for ModInt<M> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        ModInt::new((self.a * rhs.a) % M::m())
+        ModInt::newu64(self.a as u64 * rhs.a as u64)
     }
 }
 
