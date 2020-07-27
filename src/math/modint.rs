@@ -41,6 +41,9 @@ impl<M: Mod> ModInt<M> {
 
 impl<M: Mod> Clone for ModInt<M> { fn clone(&self) -> Self { ModInt::new(self.a) } }
 impl<M: Mod> Copy for ModInt<M> {}
+impl<M: Mod> From<i64> for ModInt<M> {
+    fn from(i: i64) -> Self { Self::newi64(i) }
+}
 
 impl<M: Mod> Add for ModInt<M> {
     type Output = Self;

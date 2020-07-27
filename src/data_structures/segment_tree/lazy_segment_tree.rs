@@ -1,62 +1,56 @@
 use crate::algebra::*;
 use crate::data_structures::set::bitset::Bitset;
 
+#[derive(Clone)]
+struct Node<T: Clone, E: Clone> {
+    val: T,
+    lazy: E,
+}
+
 pub struct LazySegmentTree<T: Monoid + Effect<E>, E: Monoid> {
-    node: Box<[T]>,
-    lazy: Box<[E]>,
-    flag: Bitset,
+    node: Box<[Node<T, E>]>,
+    //flag: Bitset,
     sz: usize,
     h: usize,
 }
 
 impl<T: Monoid + Effect<E>, E: Monoid> LazySegmentTree<T, E> {
     pub fn new(arr: &[T]) -> Self {
-        let mut sz = 1;
-        let mut h = 1;
-        while sz < arr.len() { sz *= 2; h += 1; }
-        let mut node = vec![T::identity(); sz << 1];
-        for i in 0..arr.len() { node[i + sz] = arr[i].clone(); }
-        for i in (1..sz).rev() { node[i] = node[i << 1].op(&node[(i << 1) + 1]); }
+        let sz = arr.len().next_power_of_two();
+        let h = sz.trailing_zeros() as usize + 1;
+        let mut node = vec![Node { val: T::identity(), lazy: E::identity() }; sz << 1];
+        for i in 0..arr.len() { node[i + sz].val = arr[i].clone(); }
+        for i in (1..sz).rev() { node[i].val = node[i << 1].val.op(&node[(i << 1) + 1].val); }
         Self {
             node: node.into_boxed_slice(),
-            lazy: vec![E::identity(); sz << 1].into_boxed_slice(),
-            flag: Bitset::new(sz << 1),
+            //flag: Bitset::new(sz << 1),
             sz,
             h
         }
     }
 
-    fn eval(&self, i: usize) -> T {
-        if self.flag.get(i) {
-            self.node[i].effect(&self.lazy[i])
-        }
-        else {
-            self.node[i].clone()
-        }
-    }
-
     fn effect(&mut self, i: usize, e: &E) {
         if i < self.node.len() {
-            self.flag.set(i, true);
-            self.lazy[i] = self.lazy[i].op(e);
+            //self.flag.set(i, true);
+            self.node[i].val = self.node[i].val.effect(e);
+            self.node[i].lazy = self.node[i].lazy.op(e);
         }
     }
 
     fn push(&mut self, i: usize) {
-        if self.flag.get(i) {
-            self.node[i] = self.eval(i);
-            let e = std::mem::replace(&mut self.lazy[i], E::identity());
+        //if self.flag.get(i) {
+        {
+            let e = std::mem::replace(&mut self.node[i].lazy, E::identity());
             self.effect(i << 1, &e);
             self.effect((i << 1) + 1, &e);
-            self.flag.set(i, false);
+            //self.flag.set(i, false);
         }
     }
 
     fn infuse(&mut self, i: usize) {
         let mut i = i >> (i.trailing_zeros() as usize);
-        while i >= 1 {
-            i >>= 1;
-            self.node[i] = self.eval(i << 1).op(&self.eval((i << 1) + 1));
+        while {i >>= 1; i} >= 1 {
+            self.node[i].val = self.node[i << 1].val.op(&self.node[(i << 1) + 1].val);
         }
     }
 
@@ -99,12 +93,12 @@ impl<T: Monoid + Effect<E>, E: Monoid> LazySegmentTree<T, E> {
         let mut rx = T::identity();
         while l < r {
             if l & 1 != 0 {
-                lx = lx.op(&self.eval(l));
+                lx = lx.op(&self.node[l].val);
                 l += 1;
             }
             if r & 1 != 0 {
                 r -= 1;
-                rx = self.eval(r).op(&rx);
+                rx = self.node[r].val.op(&rx);
             }
             l >>= 1;
             r >>= 1;

@@ -9,7 +9,11 @@ pub trait NttMod: Mod {
 macro_rules! define_nttmod {
     ($st: ident, $m: expr, $pr: expr, $nl: expr) => {
         pub struct $st {}
-        impl Mod for $st { fn m() -> u64 { $m } }
+        impl Mod for $st {
+            fn m() -> u32 { $m }
+            fn m64() -> u64 { $m as u64 }
+            fn mi64() -> i64 { $m as i64 }
+        }
         impl NttMod for $st {
             fn primitive() -> ModInt<Self> { ModInt::new($pr) }
             fn nlimit() -> usize { $nl }
@@ -17,24 +21,24 @@ macro_rules! define_nttmod {
     };
 }
 
-define_nttmod! { NttMod1224736769, 1224736769, 3, (1 << 24) }
-define_nttmod! { NttMod1053818881, 1053818881, 7, (1 << 20) }
-define_nttmod! { NttMod1051721729, 1051721729, 6, (1 << 20) }
-define_nttmod! { NttMod1045430273, 1045430273, 3, (1 << 20) }
-define_nttmod! { NttMod1012924417, 1012924417, 5, (1 << 21) }
-define_nttmod! { NttMod1007681537, 1007681537, 3, (1 << 20) }
-define_nttmod! { NttMod1004535809, 1004535809, 3, (1 << 21) }
-define_nttmod! { NttMod998244353, 998244353, 3, (1 << 23) }
-define_nttmod! { NttMod985661441, 985661441, 3, (1 << 22) }
-define_nttmod! { NttMod976224257, 976224257, 3, (1 << 20) }
-define_nttmod! { NttMod975175681, 975175681, 17, (1 << 21) }
-define_nttmod! { NttMod962592769, 962592769, 7, (1 << 21) }
-define_nttmod! { NttMod950009857, 950009857, 7, (1 << 21) }
-define_nttmod! { NttMod943718401, 943718401, 7, (1 << 22) }
-define_nttmod! { NttMod935329793, 935329793, 3, (1 << 22) }
-define_nttmod! { NttMod924844033, 924844033, 5, (1 << 21) }
-define_nttmod! { NttMod469762049, 469762049, 3, (1 << 26) }
-define_nttmod! { NttMod167772161, 167772161, 3, (1 << 25) }
+define_nttmod! { NttMod1224736769, 1224736769, 3, 1 << 24 }
+define_nttmod! { NttMod1053818881, 1053818881, 7, 1 << 20 }
+define_nttmod! { NttMod1051721729, 1051721729, 6, 1 << 20 }
+define_nttmod! { NttMod1045430273, 1045430273, 3, 1 << 20 }
+define_nttmod! { NttMod1012924417, 1012924417, 5, 1 << 21 }
+define_nttmod! { NttMod1007681537, 1007681537, 3, 1 << 20 }
+define_nttmod! { NttMod1004535809, 1004535809, 3, 1 << 21 }
+define_nttmod! { NttMod998244353, 998244353, 3, 1 << 23 }
+define_nttmod! { NttMod985661441, 985661441, 3, 1 << 22 }
+define_nttmod! { NttMod976224257, 976224257, 3, 1 << 20 }
+define_nttmod! { NttMod975175681, 975175681, 17, 1 << 21 }
+define_nttmod! { NttMod962592769, 962592769, 7, 1 << 21 }
+define_nttmod! { NttMod950009857, 950009857, 7, 1 << 21 }
+define_nttmod! { NttMod943718401, 943718401, 7, 1 << 22 }
+define_nttmod! { NttMod935329793, 935329793, 3, 1 << 22 }
+define_nttmod! { NttMod924844033, 924844033, 5, 1 << 21 }
+define_nttmod! { NttMod469762049, 469762049, 3, 1 << 26 }
+define_nttmod! { NttMod167772161, 167772161, 3, 1 << 25 }
 
 pub fn number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec<ModInt<NM>> {
     let n = arr.len();
@@ -45,7 +49,7 @@ pub fn number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec<ModInt<
  
     for si in (0..bit).rev() {
         let s = (1 << si) as usize;
-        let zeta = NM::primitive().pow((NM::m() - 1) / (s << 1) as u64);
+        let zeta = NM::primitive().pow(((NM::m() - 1) / (s << 1) as u32 ) as u64);
         for ii in 0..(n / (s << 1)) {
             let i = ii * (s << 1);
             let mut z_i = ModInt::new(1);
@@ -69,7 +73,7 @@ pub fn inverse_number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec
  
     for si in 0..bit {
         let s = (1 << si) as usize;
-        let zeta = NM::primitive().pow((NM::m() - 1) / (s << 1) as u64).pow(NM::m() - 2);
+        let zeta = NM::primitive().pow(((NM::m() - 1) / (s << 1) as u32) as u64).pow(NM::m64() - 2);
         for ii in 0..(n / (s << 1)) {
             let i = ii * (s << 1);
             let mut z_i = ModInt::new(1);
@@ -81,6 +85,6 @@ pub fn inverse_number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec
             }
         }
     }
-    let inv_n = ModInt::new(1) / ModInt::new(n as u64);
+    let inv_n = ModInt::new(1) / ModInt::new(n as u32);
     a.iter().map(|&x| x * inv_n).collect()
 }
