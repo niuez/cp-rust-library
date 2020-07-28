@@ -123,7 +123,7 @@ fn inv_test() {
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
-    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    let p = P::new(&[ModInt::new(1), ModInt::newi64(-1)]).pre(16);
     assert_eq!(p.inv().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
 
@@ -134,7 +134,7 @@ fn inv2_test() {
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
-    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    let p = P::new(&[ModInt::new(1), ModInt::newi64(-1)]).pre(16);
     assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
 
@@ -145,7 +145,7 @@ fn inv2_test2() {
     use crate::math::fps_multiply::ntt_multiply::NttMultiply;
     type FM = NttMultiply<NttMod998244353>;
     type P = FormalPowerSeries<FM>;
-    let p = P::new(&[ModInt::new(5), ModInt::newi(4), ModInt::newi(3), ModInt::newi(2), ModInt::newi(1)]).pre(16);
+    let p = P::new(&[ModInt::new(5), ModInt::newi64(4), ModInt::newi64(3), ModInt::newi64(2), ModInt::newi64(1)]).pre(16);
     println!("{:?}", p.inv2().coef.into_iter().map(|x| x.value()).collect::<Vec<_>>());
 }
 
@@ -156,7 +156,7 @@ fn fft_fps_test() {
     use crate::math::fps_multiply::fft_multiply::FftModMultiply;
     type FM = FftModMultiply<NttMod976224257>;
     type P = FormalPowerSeries<FM>;
-    let p = P::new(&[ModInt::new(1), ModInt::newi(-1)]).pre(16);
+    let p = P::new(&[ModInt::new(1), ModInt::newi64(-1)]).pre(16);
     assert_eq!(p.inv2().coef.iter().map(|x| x.value()).collect::<Vec<_>>(), vec![1; 16]);
 }
 
