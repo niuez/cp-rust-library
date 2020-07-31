@@ -24,12 +24,14 @@ impl<T: LineNumber> LiChaoSegmentTree<T> {
                 let m = (l + r) >> 1;
                 let bl = line.get(self.xs[l]) < li.get(self.xs[l]);
                 let bm = line.get(self.xs[m]) < li.get(self.xs[m]);
+                let br = line.get(self.xs[r - 1]) < li.get(self.xs[r - 1]);
                 if bm { 
                     self.node[i] = Some(std::mem::replace(&mut line, li));
                 }
                 else {
                     self.node[i] = Some(li)
                 }
+                if bl == br { break; }
                 if bl != bm {
                     r = m;
                     i = i << 1;
