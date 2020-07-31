@@ -1,12 +1,12 @@
-use super::{ Line, LineDecimal };
+use super::{ Line, LineNumber };
 
 use std::collections::VecDeque;
 
-pub struct MonotoneCHT<T: LineDecimal> {
+pub struct MonotoneCHT<T: LineNumber> {
     lines: VecDeque<Line<T>>,
 }
 
-impl<T: LineDecimal> MonotoneCHT<T> {
+impl<T: LineNumber + std::ops::Sub<Output=T>> MonotoneCHT<T> {
     pub fn new() -> Self { MonotoneCHT { lines: VecDeque::new() } }
     fn check(ln0: &Line<T>, ln1: &Line<T>, ln2: &Line<T>) -> bool {
         if ln0.a == ln1.a { ln0.b < ln1.b }
@@ -49,12 +49,12 @@ impl<T: LineDecimal> MonotoneCHT<T> {
     pub fn deq_query(&self) -> MonotoneCHTDeqQuery<T> { MonotoneCHTDeqQuery { lines: &self.lines, i: self.lines.len() - 1 } }
 }
 
-pub struct MonotoneCHTInclQuery<'a, T: LineDecimal> {
+pub struct MonotoneCHTInclQuery<'a, T: LineNumber> {
     lines: &'a VecDeque<Line<T>>,
     i: usize,
 }
 
-impl<'a, T: LineDecimal> MonotoneCHTInclQuery<'a, T> {
+impl<'a, T: LineNumber> MonotoneCHTInclQuery<'a, T> {
     pub fn min_value(&mut self, x: T) -> T {
         while self.i + 1 < self.lines.len() && self.lines[self.i].get(x) >= self.lines[self.i + 1].get(x) {
             self.i += 1;
@@ -63,12 +63,12 @@ impl<'a, T: LineDecimal> MonotoneCHTInclQuery<'a, T> {
     }
 }
 
-pub struct MonotoneCHTDeqQuery<'a, T: LineDecimal> {
+pub struct MonotoneCHTDeqQuery<'a, T: LineNumber> {
     lines: &'a VecDeque<Line<T>>,
     i: usize,
 }
 
-impl<'a, T: LineDecimal> MonotoneCHTDeqQuery<'a, T> {
+impl<'a, T: LineNumber> MonotoneCHTDeqQuery<'a, T> {
     pub fn min_value(&mut self, x: T) -> T {
         while self.i > 0 && self.lines[self.i].get(x) >= self.lines[self.i - 1].get(x) {
             self.i -= 1;
