@@ -15,15 +15,12 @@ impl<FM: FpsMultiply> Clone for FormalPowerSeries<FM> {
 impl<FM: FpsMultiply> FormalPowerSeries<FM> {
     fn new_raw(coef: Vec<FM::Target>) -> Self { FormalPowerSeries { coef, _p: std::marker::PhantomData } }
     pub fn new(coef: &[FM::Target]) -> Self {
-        let mut coef = coef.to_vec();
-        let n = (0usize.count_zeros()
-                 - coef.len().leading_zeros()
-                 - if coef.len().count_ones() == 1 { 1 } else { 0 }
-                 ) as usize;
-        coef.resize(1 << n, FM::Target::from(0));
-        FormalPowerSeries::new_raw(coef)
+        FormalPowerSeries::new_raw(coef.to_vec())
     }
     pub fn len(&self) -> usize { self.coef.len() }
+    pub fn bound_len(&mut self) {
+        self.coef.resize(self.coef.len().next_power_of_two(), FM::Target::from(0));
+    }
     pub fn pre(mut self, d: usize) -> Self {
         self.coef.resize(d, FM::Target::from(0));
         self
@@ -39,11 +36,13 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
 
     pub fn inv2(&self) -> Self {
         let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
-        let n = self.len();
-        for i in 0..self.len().trailing_zeros() {
+        let mut f = self.clone();
+        f.bound_len();
+        let n = f.len();
+        for i in 0..f.len().trailing_zeros() {
             g = g.pre(1 << (i + 1));
             let gdft = FM::dft(g.coef.clone());
-            let mut e = FM::idft(FM::multiply(FM::dft(self.clone().pre(1 << (i + 1)).coef), gdft.clone()));
+            let mut e = FM::idft(FM::multiply(FM::dft(f.clone().pre(1 << (i + 1)).coef), gdft.clone()));
             for j in 0..(1 << i) {
                 e[j] = FM::Target::from(0);
                 e[j + (1 << i)] = e[j + (1 << i)].clone() * FM::Target::from(-1);
@@ -88,7 +87,7 @@ impl<FM: FpsMultiply> Sub for FormalPowerSeries<FM> {
 impl<FM: FpsMultiply> Mul for FormalPowerSeries<FM> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        let n = std::cmp::max(self.len(), rhs.len()) << 1;
+        let n = (self.len() + rhs.len() - 1).next_power_of_two();
         Self::new_raw(FM::idft(FM::multiply(FM::dft(self.pre(n).coef), FM::dft(rhs.pre(n).coef))))
     }
 }
