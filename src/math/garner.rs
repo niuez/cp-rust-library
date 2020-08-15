@@ -1,27 +1,20 @@
-pub fn garner(x: &Vec<u64>, mods: &Vec<u64>, m: u64) -> u64 {
-    let mut mods = mods.clone();
-    mods.push(m);
-    let mut coeffs = vec![1u64; mods.len()];
-    let mut constants = vec![0u64; mods.len()];
-    let inv = |a, mo| {
-        let mut exp = mo - 2;
-        let mut now = a;
-        let mut ans = 1;
-        while exp > 0 {
-            if (exp & 1) == 1 { ans = (ans * now) % mo; }
-            now = (now * now) % mo;
-            exp >>= 1;
-        }
-        ans
-    };
-    for i in 0..x.len() {
-        let a = x[i] + mods[i] - constants[i];
-        let a = if a > mods[i] { a - mods[i] } else { a };
-        let v = a * inv(coeffs[i], mods[i]) % mods[i];
-        for j in i + 1..mods.len() {
-            constants[j] = (constants[j] + coeffs[j] * v) % mods[j];
-            coeffs[j] = (coeffs[j] * mods[i]) % mods[j];
+use crate::math::modint::inv_mod;
+
+pub fn garner<XI>(xm: XI, m: u32) -> u32
+where
+    XI: IntoIterator<Item=(u32, u32)>, 
+{
+    let mut xm = xm.into_iter().map(|(x, y)| (x as u64, y as u64)).collect::<Vec<_>>();
+    xm.push((0, m as u64));
+    let mut c = vec![(1u64, 0u64); xm.len()];
+    for i in 0..xm.len() - 1 {
+        let a = xm[i].0 + xm[i].1 - c[i].1;
+        let a = if a >= xm[i].1 { a - xm[i].1 } else { a };
+        let v = a * inv_mod(c[i].0, xm[i].1) % xm[i].1;
+        for j in i + 1..xm.len() {
+            c[j].1 = (c[j].1 + c[j].0 * v) % xm[j].1;
+            c[j].0 = (c[j].0 * xm[i].1) % xm[j].1
         }
     }
-    constants[x.len()]
+    c[xm.len() - 1].1 as u32
 }

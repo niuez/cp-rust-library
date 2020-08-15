@@ -1,4 +1,5 @@
 pub mod ntt_multiply;
+pub mod ntt_arb_multiply;
 
 use std::ops::{ Add, Sub, Mul, Div };
 

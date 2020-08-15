@@ -1,5 +1,22 @@
 use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
 
+pub fn inv_mod(a: u64, m: u64) -> u64 {
+    let m = m as i64;
+    let mut a = a as i64;
+    let mut b = m as i64;
+    let mut u = 1i64;
+    let mut v = 0i64;
+    while b > 0 {
+        let t = a / b;
+        a -= t * b;
+        u -= t * v;
+        std::mem::swap(&mut a, &mut b);
+        std::mem::swap(&mut u, &mut v);
+    }
+    let ans = (if u >= 0 { u % m } else { (m + (u % m)) % m }) as u64;
+    ans
+}
+
 pub trait Mod: Sized {
     fn m() -> u32;
     fn m64() -> u64;
@@ -36,7 +53,7 @@ impl<M: Mod> ModInt<M> {
         }
         ans
     }
-    pub fn inv(&self) -> Self { self.pow(M::m() as u64 - 2) }
+    pub fn inv(&self) -> Self { Self::new(inv_mod(self.a as u64 , M::m64()) as u32) }
 }
 
 impl<M: Mod> Clone for ModInt<M> { fn clone(&self) -> Self { ModInt::new(self.a) } }

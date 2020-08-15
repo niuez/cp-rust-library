@@ -40,24 +40,25 @@ define_nttmod! { NttMod924844033, 924844033, 5, 1 << 21 }
 define_nttmod! { NttMod469762049, 469762049, 3, 1 << 26 }
 define_nttmod! { NttMod167772161, 167772161, 3, 1 << 25 }
 
+
 pub fn number_theoretic_transform<NM: NttMod>(mut a: Vec<ModInt<NM>>) -> Vec<ModInt<NM>> {
     let n = a.len();
     assert!(n <= NM::nlimit(), "over length limit");
     assert!(n.count_ones() == 1, "the length of array is no square");
     let bit = n.trailing_zeros();
+    let zs: Vec<_> = (0..bit).map(|i| ModInt::<NM>::new(0) - NM::primitive().pow((NM::m64() - 1) >> (i + 2))).collect();
  
     for si in (0..bit).rev() {
         let s = (1 << si) as usize;
-        let zeta = NM::primitive().pow(((NM::m() - 1) / (s << 1) as u32 ) as u64);
+        let mut z_i = ModInt::new(1);
         for ii in 0..(n / (s << 1)) {
             let i = ii * (s << 1);
-            let mut z_i = ModInt::new(1);
             for j in 0..s {
-                let t = a[i + j] - a[s + i + j];
-                a[i + j] = a[i + j] + a[s + i + j];
-                a[s + i + j] = t * z_i;
-                z_i *= zeta;
+                let t = a[s + i + j] * z_i;
+                a[s + i + j] = a[i + j] - t;
+                a[i + j] = a[i + j] + t;
             }
+            z_i *= zs[(ii + 1).trailing_zeros() as usize];
         }
     }
     a
@@ -68,19 +69,19 @@ pub fn inverse_number_theoretic_transform<NM: NttMod>(mut a: Vec<ModInt<NM>>) ->
     assert!(n <= NM::nlimit(), "over length limit");
     assert!(n.count_ones() == 1, "the length of array is no square");
     let bit = n.trailing_zeros();
+    let zs: Vec<_> = (0..bit).map(|i| (ModInt::<NM>::new(0) - NM::primitive().pow((NM::m64() - 1) >> (i + 2))).inv()).collect();
  
     for si in 0..bit {
         let s = (1 << si) as usize;
-        let zeta = NM::primitive().pow(((NM::m() - 1) / (s << 1) as u32) as u64).pow(NM::m64() - 2);
+        let mut z_i = ModInt::new(1);
         for ii in 0..(n / (s << 1)) {
             let i = ii * (s << 1);
-            let mut z_i = ModInt::new(1);
             for j in 0..s {
-                let t = a[s + i + j] * z_i;
-                a[s + i + j] = a[i + j] - t;
-                a[i + j] = a[i + j] + t;
-                z_i *= zeta;
+                let t = a[i + j] - a[s + i + j];
+                a[i + j] = a[i + j] + a[s + i + j];
+                a[s + i + j] = t * z_i;
             }
+            z_i *= zs[(ii + 1).trailing_zeros() as usize];
         }
     }
     let inv_n = ModInt::new(1) / ModInt::new(n as u32);
