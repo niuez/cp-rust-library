@@ -40,11 +40,10 @@ define_nttmod! { NttMod924844033, 924844033, 5, 1 << 21 }
 define_nttmod! { NttMod469762049, 469762049, 3, 1 << 26 }
 define_nttmod! { NttMod167772161, 167772161, 3, 1 << 25 }
 
-pub fn number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec<ModInt<NM>> {
-    let n = arr.len();
+pub fn number_theoretic_transform<NM: NttMod>(mut a: Vec<ModInt<NM>>) -> Vec<ModInt<NM>> {
+    let n = a.len();
     assert!(n <= NM::nlimit(), "over length limit");
     assert!(n.count_ones() == 1, "the length of array is no square");
-    let mut a: Vec<_> = arr.to_vec();
     let bit = n.trailing_zeros();
  
     for si in (0..bit).rev() {
@@ -64,11 +63,10 @@ pub fn number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec<ModInt<
     a
 }
  
-pub fn inverse_number_theoretic_transform<NM: NttMod>(arr: &[ModInt<NM>]) -> Vec<ModInt<NM>> {
-    let n = arr.len();
+pub fn inverse_number_theoretic_transform<NM: NttMod>(mut a: Vec<ModInt<NM>>) -> Vec<ModInt<NM>> {
+    let n = a.len();
     assert!(n <= NM::nlimit(), "over length limit");
     assert!(n.count_ones() == 1, "the length of array is no square");
-    let mut a: Vec<_> = arr.to_vec();
     let bit = n.trailing_zeros();
  
     for si in 0..bit {
