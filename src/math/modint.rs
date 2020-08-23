@@ -95,3 +95,9 @@ impl<M: Mod> AddAssign for ModInt<M> { fn add_assign(&mut self, rhs: Self) { *se
 impl<M: Mod> SubAssign for ModInt<M> { fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; } }
 impl<M: Mod> MulAssign for ModInt<M> { fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; } }
 impl<M: Mod> DivAssign for ModInt<M> { fn div_assign(&mut self, rhs: Self) { *self = *self / rhs; } }
+
+impl<M: Mod> std::fmt::Debug for ModInt<M> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "M{}", self.a)
+    }
+}

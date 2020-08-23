@@ -53,6 +53,37 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
         }
         g.pre(n)
     }
+
+    fn reciprocal(&mut self) {
+        for i in 0..self.len() {
+            let j = self.len() - 1 - i;
+            if i < j {
+                self.coef.swap(i, j);
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    pub fn moduler(self, mut b: Self) -> Self {
+        let mut a = self;
+        let n = a.len();
+        let m = b.len();
+        if n < m {
+            a
+        }
+        else {
+            a.reciprocal();
+            b.reciprocal();
+            let nb = (n - m + 1).next_power_of_two();
+            let mut q = (a.clone().pre(nb) * b.clone().pre(nb).inv2()).pre(n - m + 1);
+            a.reciprocal();
+            b.reciprocal();
+            q.reciprocal();
+            (a - b * q).pre(m)
+        }
+    }
 }
 
 impl<FM: FpsMultiply> std::ops::Index<usize> for FormalPowerSeries<FM> {
@@ -87,8 +118,9 @@ impl<FM: FpsMultiply> Sub for FormalPowerSeries<FM> {
 impl<FM: FpsMultiply> Mul for FormalPowerSeries<FM> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        let n = (self.len() + rhs.len() - 1).next_power_of_two();
-        Self::new_raw(FM::idft(FM::multiply(FM::dft(self.pre(n).coef), FM::dft(rhs.pre(n).coef))))
+        let m = self.len() + rhs.len() - 1;
+        let n = m.next_power_of_two();
+        Self::new_raw(FM::idft(FM::multiply(FM::dft(self.pre(n).coef), FM::dft(rhs.pre(n).coef)))).pre(m)
     }
 }
 
