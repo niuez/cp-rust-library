@@ -9,3 +9,4 @@ pub mod fps_multiply;
 pub mod multipoint_evaluation;
 pub mod matrix;
 pub mod berlekamp_massey;
+pub mod bbla;

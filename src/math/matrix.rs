@@ -15,6 +15,8 @@ impl<F: Field> Matrix2D<F> {
             w,
         }
     }
+    pub fn height(&self) -> usize { self.h }
+    pub fn weight(&self) -> usize { self.w }
 }
 
 impl<F> std::ops::Index<usize> for Matrix2D<F> {
