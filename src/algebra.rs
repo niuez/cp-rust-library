@@ -25,7 +25,7 @@ pub trait Effect<E: Monoid> {
 impl<T: Magma + Associative + Unital> Monoid for T {}
 
 pub trait Field:
-    Sized + Clone +
+    Sized + Copy + std::cmp::Eq +
     std::ops::Add<Output=Self> + 
     std::ops::Sub<Output=Self> +
     std::ops::Mul<Output=Self> +
