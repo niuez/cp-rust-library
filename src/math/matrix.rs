@@ -39,7 +39,7 @@ impl<F: Field> std::ops::Add<Self> for Matrix2D<F> {
         assert_eq!(self.w, rhs.w, "the width of the two matrices is different.");
         for i in 0..self.h {
             for j in 0..self.w {
-                self[i][j] += rhs[i][j].clone();
+                self[i][j] += rhs[i][j];
             }
         }
         self
@@ -53,7 +53,7 @@ impl<F: Field> std::ops::Sub<Self> for Matrix2D<F> {
         assert_eq!(self.w, rhs.w, "the width of the two matrices is different.");
         for i in 0..self.h {
             for j in 0..self.w {
-                self[i][j] -= rhs[i][j].clone();
+                self[i][j] -= rhs[i][j];
             }
         }
         self
@@ -68,10 +68,10 @@ impl<F: Field> std::ops::Mul<Self> for Matrix2D<F> {
         for i in 0..self.h {
             let c = &mut res[i];
             for k in 0..self.w {
-                let a = &self[i][k];
+                let a = self[i][k];
                 let b = &rhs[k];
                 for j in 0..rhs.w {
-                    c[j] += a.clone() * b[j].clone();
+                    c[j] += a * b[j];
                 }
             }
         }
