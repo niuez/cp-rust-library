@@ -7,3 +7,4 @@ pub mod formal_power_series;
 pub mod garner;
 pub mod fps_multiply;
 pub mod multipoint_evaluation;
+pub mod matrix;

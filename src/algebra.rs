@@ -23,3 +23,18 @@ pub trait Effect<E: Monoid> {
 }
 
 impl<T: Magma + Associative + Unital> Monoid for T {}
+
+pub trait Field:
+    Sized + Clone +
+    std::ops::Add<Output=Self> + 
+    std::ops::Sub<Output=Self> +
+    std::ops::Mul<Output=Self> +
+    std::ops::Div<Output=Self> +
+    std::ops::AddAssign<> + 
+    std::ops::SubAssign<> +
+    std::ops::MulAssign<> +
+    std::ops::DivAssign<>
+{
+    fn zero() -> Self;
+    fn one() -> Self;
+}

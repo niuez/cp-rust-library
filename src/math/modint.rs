@@ -101,3 +101,13 @@ impl<M: Mod> std::fmt::Debug for ModInt<M> {
         write!(f, "M{}", self.a)
     }
 }
+
+
+impl<M: Mod> crate::algebra::Field for ModInt<M> {
+    fn zero() -> Self {
+        ModInt::new(0)
+    }
+    fn one() -> Self {
+        ModInt::new(1)
+    }
+}
