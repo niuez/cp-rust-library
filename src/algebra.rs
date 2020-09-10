@@ -33,7 +33,8 @@ pub trait Field:
     std::ops::AddAssign<> + 
     std::ops::SubAssign<> +
     std::ops::MulAssign<> +
-    std::ops::DivAssign<>
+    std::ops::DivAssign<> +
+    std::ops::Neg<Output=Self>
 {
     fn zero() -> Self;
     fn one() -> Self;

@@ -1,4 +1,4 @@
-use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign };
+use std::ops::{ Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg };
 
 pub fn inv_mod(a: u64, m: u64) -> u64 {
     let m = m as i64;
@@ -90,6 +90,21 @@ impl<M: Mod> Div for ModInt<M> {
         self * rhs.inv()
     }
 }
+
+impl<M: Mod> Neg for ModInt<M> {
+    type Output = Self;
+    fn neg(self) -> Self {
+        if self.a == 0 { ModInt::new(0) }
+        else { ModInt::new(M::m() - self.a) }
+    }
+}
+
+impl<M: Mod> std::cmp::PartialEq for ModInt<M> {
+    fn eq(&self, other: &Self) -> bool {
+        self.a == other.a
+    }
+}
+impl<M: Mod> std::cmp::Eq for ModInt<M> {}
 
 impl<M: Mod> AddAssign for ModInt<M> { fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; } }
 impl<M: Mod> SubAssign for ModInt<M> { fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; } }
