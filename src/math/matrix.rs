@@ -78,3 +78,15 @@ impl<F: Field> std::ops::Mul<Self> for Matrix2D<F> {
         res
     }
 }
+
+impl<F: Field> std::ops::Mul<F> for Matrix2D<F> {
+    type Output = Self;
+    fn mul(mut self, rhs: F) -> Self {
+        for i in 0..self.h {
+            for j in 0..self.w {
+                self[i][j] *= rhs;
+            }
+        }
+        self
+    }
+}
