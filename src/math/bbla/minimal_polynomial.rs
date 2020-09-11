@@ -39,3 +39,51 @@ pub fn find_minimal_polynomial_from_matrix_pow<F: Field + RandomGen, R: Random>(
     }
     find_minimal_polynomial_from_vector(rng, &v)
 }
+
+#[test]
+fn matrix_pow_test() {
+    use crate::math::modint::*;
+    use crate::math::convolution::number_theoretic_transform::NttMod998244353;
+    use crate::math::fps_multiply::ntt_multiply::NttMultiply;
+    use crate::random::Xorshift128;
+    use crate::math::fast_kitamasa::fast_kitamasa;
+    type M = ModInt<NttMod998244353>;
+    type FM = NttMultiply<NttMod998244353>;
+    let n = 1000;
+    let mut a = Matrix2D::zero(4, 4);
+    for i in 0..4 {
+        for j in 0..4 {
+            a[i][j] = M::new((i * 4 + j) as u32);
+        }
+    }
+    let mut rng = Xorshift128::new(91);
+    let c = find_minimal_polynomial_from_matrix_pow(&mut rng, &a);
+    println!("c = {:?}", c);
+    let mut b = fast_kitamasa::<FM>(&c, n);
+    println!("b = {:?}", b);
+    b.reverse();
+
+    let mut ans = Matrix2D::zero(4, 4);
+    {
+        let mut now = Matrix2D::zero(4, 4);
+        for i in 0..4 {
+            now[i][i] = M::new(1);
+        }
+        for i in 0..b.len() {
+            ans = ans + now.clone() * b[i];
+            now = now * a.clone();
+        }
+        println!("{:?}", ans);
+    }
+
+    let mut res = Matrix2D::zero(4, 4);
+    {
+        for i in 0..4 {
+            res[i][i] = M::new(1);
+        }
+        for _ in 0..n {
+            res = res * a.clone();
+        }
+        println!("{:?}", res);
+    }
+}

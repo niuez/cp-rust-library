@@ -1,11 +1,11 @@
 use crate::algebra::Field;
 
+#[derive(Clone, Debug)]
 pub struct Matrix2D<F> {
     a: Box<[F]>,
     h: usize,
     w: usize,
 }
-
 
 impl<F: Field> Matrix2D<F> {
     pub fn zero(h: usize, w: usize) -> Self {
