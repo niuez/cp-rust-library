@@ -1,5 +1,5 @@
 use crate::algebra::Field;
-use crate::math::matrix::Matrix2D;
+use crate::math::matrix::matrix2d::Matrix2D;
 
 pub trait KrylovGen<F: Field> {
     fn generate_krylov_sequence(&self, b: &[F], len: usize) -> Vec<Vec<F>>;

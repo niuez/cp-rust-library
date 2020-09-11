@@ -1,6 +1,6 @@
 use crate::random::{ Random, RandomGen };
 use crate::algebra::Field;
-use crate::math::matrix::Matrix2D;
+use crate::math::matrix::matrix2d::Matrix2D;
 use crate::math::berlekamp_massey::berlekamp_massey;
 use crate::math::bbla::krylov_sequence::KrylovGen;
 
