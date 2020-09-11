@@ -5,7 +5,7 @@ use crate::math::berlekamp_massey::berlekamp_massey;
 
 pub fn find_minimal_polynomial<F: Field>(a: &[F]) -> Vec<F> {
     let c = berlekamp_massey(a);
-    c.into_iter().rev().chain(std::iter::once(-F::one())).collect() 
+    std::iter::once(-F::one()).chain(c.into_iter()).collect()
 }
 
 pub fn find_minimal_polynomial_from_vector<AV: AsRef<[V]>, V: AsRef<[F]>, F: Field + RandomGen, R: Random>(rng: &mut R, a: AV) -> Vec<F> {

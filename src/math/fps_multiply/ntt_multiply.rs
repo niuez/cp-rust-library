@@ -13,4 +13,8 @@ impl<N: NttMod> FpsMultiply for NttMultiply<N> {
         for i in 0..a.len() { a[i] *= b[i] }
         a
     }
+    fn multiply_self(mut a: Self::Output) -> Self::Output {
+        for i in 0..a.len() { a[i] = a[i] * a[i] }
+        a
+    }
 }

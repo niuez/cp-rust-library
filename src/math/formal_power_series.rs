@@ -1,6 +1,7 @@
 use crate::math::fps_multiply::FpsMultiply;
 
 use std::ops::{ Add, Sub, Mul, Div };
+use crate::algebra::Field;
 
 
 pub struct FormalPowerSeries<FM: FpsMultiply> {
@@ -13,29 +14,30 @@ impl<FM: FpsMultiply> Clone for FormalPowerSeries<FM> {
 }
 
 impl<FM: FpsMultiply> FormalPowerSeries<FM> {
-    fn new_raw(coef: Vec<FM::Target>) -> Self { FormalPowerSeries { coef, _p: std::marker::PhantomData } }
+    pub fn new_raw(coef: Vec<FM::Target>) -> Self { FormalPowerSeries { coef, _p: std::marker::PhantomData } }
     pub fn new(coef: &[FM::Target]) -> Self {
         FormalPowerSeries::new_raw(coef.to_vec())
     }
     pub fn len(&self) -> usize { self.coef.len() }
     pub fn bound_len(&mut self) {
-        self.coef.resize(self.coef.len().next_power_of_two(), FM::Target::from(0));
+        self.coef.resize(self.coef.len().next_power_of_two(), FM::Target::zero());
     }
     pub fn pre(mut self, d: usize) -> Self {
-        self.coef.resize(d, FM::Target::from(0));
+        self.coef.resize(d, FM::Target::zero());
         self
     }
 
     pub fn inv(&self) -> Self {
-        let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
+        let two = FM::Target::one() + FM::Target::one();
+        let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::one() / self[0]]);
         for i in 0..self.len().trailing_zeros() {
-            g = (g.clone() * FM::Target::from(2) - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
+            g = (g.clone() * two - g.clone() * g * self.clone().pre(1 << (i + 1))).pre(1 << (i + 1));
         }
         g.pre(self.len())
     }
 
     pub fn inv2(&self) -> Self {
-        let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::from(1) / self[0]]);
+        let mut g = FormalPowerSeries::<FM>::new(&[FM::Target::one() / self[0]]);
         let mut f = self.clone();
         f.bound_len();
         let n = f.len();
@@ -44,8 +46,8 @@ impl<FM: FpsMultiply> FormalPowerSeries<FM> {
             let gdft = FM::dft(g.coef.clone());
             let mut e = FM::idft(FM::multiply(FM::dft(f.clone().pre(1 << (i + 1)).coef), gdft.clone()));
             for j in 0..(1 << i) {
-                e[j] = FM::Target::from(0);
-                e[j + (1 << i)] = e[j + (1 << i)].clone() * FM::Target::from(-1);
+                e[j] = FM::Target::zero();
+                e[j + (1 << i)] = e[j + (1 << i)].clone() * (-FM::Target::one());
             }
             let mut e = FM::idft(FM::multiply(FM::dft(e), gdft));
             for j in 0..(1 << i) { e[j] = g[j].clone() }

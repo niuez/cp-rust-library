@@ -35,4 +35,10 @@ impl<M: Mod> FpsMultiply for NttArbMultiply<M> {
         for i in 0..a.2.len() { a.2[i] *= b.2[i]; }
         a
     }
+    fn multiply_self(mut a: Self::Output) -> Self::Output {
+        for i in 0..a.0.len() { a.0[i] = a.0[i] * a.0[i]; }
+        for i in 0..a.1.len() { a.1[i] = a.1[i] * a.1[i]; }
+        for i in 0..a.2.len() { a.2[i] = a.2[i] * a.2[i]; }
+        a
+    }
 }

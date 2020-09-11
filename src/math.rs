@@ -10,3 +10,4 @@ pub mod multipoint_evaluation;
 pub mod matrix;
 pub mod berlekamp_massey;
 pub mod bbla;
+pub mod fast_kitamasa;

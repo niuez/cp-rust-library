@@ -1,5 +1,6 @@
 use crate::math::formal_power_series::FormalPowerSeries;
 use crate::math::fps_multiply::FpsMultiply;
+use crate::algebra::Field;
 
 type Fps<FM> = FormalPowerSeries<FM>;
 
@@ -13,8 +14,8 @@ impl<FM: FpsMultiply> MultipointEvaluation<FM> {
     pub fn new(x: &[FM::Target]) -> Self {
         let n = x.len();
         assert!(n.is_power_of_two(), "n must be power of two");
-        let zero = FM::Target::from(0);
-        let one = FM::Target::from(1);
+        let zero = FM::Target::zero();
+        let one = FM::Target::one();
         let mut sub = vec![Fps::new(&[zero.clone()]); n * 2 - 1];
         for i in 0..n {
             sub[i + n - 1] = Fps::new(&[zero - x[i], one]);
@@ -39,7 +40,7 @@ impl<FM: FpsMultiply> MultipointEvaluation<FM> {
     }
 
     pub fn evaluate(&self, f: Fps<FM>) -> Vec<FM::Target> {
-        let mut ans = vec![FM::Target::from(0); self.n];
+        let mut ans = vec![FM::Target::zero(); self.n];
         self.evaluate_rec(f, 0, &mut ans);
         ans
     }

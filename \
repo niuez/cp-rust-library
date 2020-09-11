@@ -1,0 +1,53 @@
+use crate::algebra::Field;
+use crate::math::fps_multiply::FpsMultiply;
+    use crate::math::formal_power_series::FormalPowerSeries;
+
+// sum { i = 0 to k } c[i] * a[k - i] = 0
+pub fn fast_kitamasa<F: Field, FM: FpsMultiply<Target=F>>(c: &[F], n: usize) -> F {
+
+}
+
+#[test]
+fn kitamasa_test() {
+    use crate::math::modint::*;
+    use crate::math::convolution::number_theoretic_transform::NttMod998244353;
+    use crate::math::fps_multiply::ntt_multiply::NttMultiply;
+    type FM = NttMultiply<NttMod998244353>;
+    type P = FormalPowerSeries<FM>;
+
+    let c = P::new(&[-ModInt::new(1), ModInt::new(1), ModInt::new(1), ModInt::new(1)]);
+    let k = 3;
+    let ic = c.inv2();
+
+    println!("ic = {:?}", ic.coef);
+    println!("c * ic = {:?}", (c.clone() * ic.clone()).coef);
+    
+    let mut b = vec![ModInt::new(0), ModInt::new(0), ModInt::new(1), ModInt::new(0)];
+    let n = 15usize;
+    let bit = n.next_power_of_two().trailing_zeros() as usize;
+    for s in (0..bit + 1).rev() {
+        println!("----- s = {}, {:b}", s, n >> s);
+        b.resize(b.len() * 2, ModInt::new(0));
+        let bt = FM::dft(b);
+        let bt = FM::multiply(bt.clone(), bt);
+        let beta = P::new_raw(FM::idft(bt));
+        let q = (beta.clone().pre(k) * ic.clone()).pre(k - 1);
+        println!("q = {:?}", q.coef);
+        let cq = beta - c.clone() * q;
+        println!("cq = {:?}", cq.coef);
+        b = vec![ModInt::new(0); k.next_power_of_two()];
+        for i in (k - 1)..(2 * k - 1) {
+            b[i - (k - 1)] = cq[i];
+        }
+        if ((n >> s) & 1) == 1 {
+            let freq = b[0];
+            for i in 0..k-1 {
+                b[i] = b[i + 1] + freq * c[i + 1];
+            }
+            b[k - 1] = freq * c[k];
+        }
+        println!("b = {:?}", b);
+    }
+    println!("b = {:?}", b);
+}
+
