@@ -2,6 +2,7 @@ use crate::random::{ Random, RandomGen };
 use crate::algebra::Field;
 use crate::math::matrix::Matrix2D;
 use crate::math::berlekamp_massey::berlekamp_massey;
+use crate::math::bbla::krylov_sequence::KrylovGen;
 
 pub fn find_minimal_polynomial<F: Field>(a: &[F]) -> Vec<F> {
     let c = berlekamp_massey(a);
@@ -25,19 +26,7 @@ pub fn find_minimal_polynomial_from_matrix_pow<F: Field + RandomGen, R: Random>(
     assert!(a.height() == a.weight());
     let n = a.height();
     let b: Vec<_> = (0..n).map(|_| F::rand_gen(rng)).collect();
-    let mut v = vec![b];
-    for i in 1..n*2 {
-        let mut sum = vec![F::zero(); n];
-        let ab = &v[i - 1];
-        for j in 0..n {
-            let aj = &a[j];
-            for k in 0..n {
-                sum[j] += aj[k] * ab[k];
-            }
-        }
-        v.push(sum);
-    }
-    find_minimal_polynomial_from_vector(rng, &v)
+    find_minimal_polynomial_from_vector(rng, &a.generate_krylov_sequence(&b, 2 * n))
 }
 
 #[test]
