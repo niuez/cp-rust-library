@@ -24,6 +24,9 @@ impl<F: Field> DiagonalMatrix<F> {
     pub fn determinant(&self) -> F {
         self.c.iter().fold(F::one(), |x, &y| x * y)
     }
+    pub fn val(&self, i: usize) -> F {
+        self.c[i]
+    }
 }
 
 impl<F: Field> Add<Self> for DiagonalMatrix<F> {
