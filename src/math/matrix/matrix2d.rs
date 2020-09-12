@@ -1,10 +1,17 @@
 use crate::algebra::Field;
+use crate::math::matrix::Matrix;
 
 #[derive(Clone, Debug)]
 pub struct Matrix2D<F> {
     a: Box<[F]>,
     h: usize,
     w: usize,
+}
+
+impl<F: Field> Matrix for Matrix2D<F> {
+    type Elem = F;
+    fn height(&self) -> usize { self.h }
+    fn width(&self) -> usize { self.w }
 }
 
 impl<F: Field> Matrix2D<F> {
@@ -15,8 +22,6 @@ impl<F: Field> Matrix2D<F> {
             w,
         }
     }
-    pub fn height(&self) -> usize { self.h }
-    pub fn weight(&self) -> usize { self.w }
 }
 
 impl<F> std::ops::Index<usize> for Matrix2D<F> {

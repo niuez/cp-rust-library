@@ -22,10 +22,12 @@ pub fn find_minimal_polynomial_from_vector<AV: AsRef<[V]>, V: AsRef<[F]>, F: Fie
     c
 }
 
-pub fn find_minimal_polynomial_from_matrix_pow<F: Field + RandomGen, R: Random>(rng: &mut R, a: &Matrix2D<F>) -> Vec<F> {
-    assert!(a.height() == a.weight());
+pub fn find_minimal_polynomial_from_matrix_pow<R: Random, M: KrylovGen>(rng: &mut R, a: &M) -> Vec<M::Elem>
+where M::Elem: RandomGen
+{
+    assert!(a.height() == a.width());
     let n = a.height();
-    let b: Vec<_> = (0..n).map(|_| F::rand_gen(rng)).collect();
+    let b: Vec<_> = (0..n).map(|_| M::Elem::rand_gen(rng)).collect();
     find_minimal_polynomial_from_vector(rng, &a.generate_krylov_sequence(&b, 2 * n))
 }
 
